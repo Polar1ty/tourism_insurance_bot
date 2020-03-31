@@ -97,7 +97,6 @@ def hello(message):
 @bot.message_handler(func=lambda message: message.text == 'Оформити страхування')
 def beggining(message):
     r = requests.get('https://web.ewa.ua/ewa/api/v10/territory/countries', headers=headers, cookies=cookies)
-    print(r.json())
     markup = types.InlineKeyboardMarkup()
     button = types.InlineKeyboardButton(text='Увесь світ', callback_data='273')
     button1 = types.InlineKeyboardButton(text='Європа', callback_data='272')
@@ -154,30 +153,68 @@ def date_from(message):
 def getting_target(message):
     if message.text == 'Навчання🎓':
         trip_purpose = 'study'
+        utility.update({str(message.chat.id) + 'trip_purpose': trip_purpose})
+        birth_date(message)
     if message.text == 'Туризм📸':
         trip_purpose = 'tourism'
+        utility.update({str(message.chat.id) + 'trip_purpose': trip_purpose})
+        birth_date(message)
     if message.text == 'Спорт⚽':
         trip_purpose = 'sport'
+        utility.update({str(message.chat.id) + 'trip_purpose': trip_purpose})
+        birth_date(message)
     if message.text == 'Активний туризм🏄':
         trip_purpose = 'active_sport'
+        utility.update({str(message.chat.id) + 'trip_purpose': trip_purpose})
+        birth_date(message)
     if message.text == 'Екстремальний туризм🎿':
         trip_purpose = 'extrim'
+        utility.update({str(message.chat.id) + 'trip_purpose': trip_purpose})
+        birth_date(message)
     if message.text == 'Професіональний спорт🥇':
         trip_purpose = 'prof_sport'
+        utility.update({str(message.chat.id) + 'trip_purpose': trip_purpose})
+        birth_date(message)
     if message.text == 'Робота💼':
         trip_purpose = 'work'
+        utility.update({str(message.chat.id) + 'trip_purpose': trip_purpose})
+        birth_date(message)
     if message.text == 'Небезпечна робота⛑':
         trip_purpose = 'danger_work'
-    utility.update({str(message.chat.id) + 'trip_purpose': trip_purpose})
+        utility.update({str(message.chat.id) + 'trip_purpose': trip_purpose})
+        birth_date(message)
+
+
+@bot.message_handler(
+    func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S_BIRTH_DATE.value)
+def birth_date(message):
+    bot.send_message(message.chat.id, 'Тепер введіть дати народження усіх подорожуючих🎂 Усе у тому ж форматі РРРР-ММ-ДД.\nЯкщо людей декілька👪, дати записуйте через кому. Наприклад 1991-09-18, 1992-05-17')
+    dbworker.set_state(message.chat.id, config.States.S_GETTING_BIRTH_DATE.value)
+
+
+@bot.message_handler(
+    func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S_GETTING_BIRTH_DATE.value)
+def getting_birth_date(message):
+    bot.send_message(message.chat.id, 'Відмінно! Ось доступні вам тарифи🔽')
     data = {
-        'multivisa': False,
+        'multivisa': 'false',
         'coverageFrom': utility.get(str(message.chat.id) + 'date_from'),
         'coverageTo': utility.get(str(message.chat.id) + 'date_to'),
-        # 'coverageDays':
+        'coverageDays': (datetime.strptime(utility.get(str(message.chat.id) + 'date_to'), '%Y-%m-%d').date() - datetime.strptime(utility.get(str(message.chat.id) + 'date_from'), '%Y-%m-%d').date()).days,
+        'country': utility.get(str(message.chat.id) + 'place_code'),
+        'risks': [
+            {'risk': 1,
+            'inCurrency': 'true'}
+        ],
+        'birthDays': ['1991-09-18'],
+        'simplified': 'true',
+        'tripPurpose': utility.get(str(message.chat.id) + 'trip_purpose'),
+        'salePoint': sale_point,
+        'customerCategory': customer_category
     }
-
-
-
+    r = requests.post('https://web.ewa.ua/ewa/api/v10/tariff/choose/tourism', headers=headers, cookies=cookies, data=data)
+    print(r)
+    print(r.json())
 
 # BOT RUNNING
 if __name__ == '__main__':

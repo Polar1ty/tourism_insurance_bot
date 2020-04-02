@@ -4,8 +4,9 @@ from telebot import types
 import requests
 import dbworker
 import json
-from datetime import datetime
+import datetime
 import sqlite3 as sql
+import inline_calendar
 
 bot = telebot.TeleBot(config.TOKEN)
 
@@ -76,7 +77,7 @@ def tariff_parsing(tariff):
 
 def date_plus_day(message):
     date_raw = message.date
-    date_from = datetime.fromtimestamp(int(date_raw)).strftime('%Y-%m-%d %H:%M:%S')
+    date_from = datetime.datetime.fromtimestamp(int(date_raw)).strftime('%Y-%m-%d %H:%M:%S')
     date_from_list = date_from.split(' ')
     day_plus_one = int(date_from_list[0].split('-')[2]) + 1
     day_plus_seven = int(date_from_list[0].split('-')[2]) + 7
@@ -102,12 +103,61 @@ def date_plus_day(message):
     return date_plus_one_day, date_plus_seven_day
 
 
+@bot.callback_query_handler(func=inline_calendar.is_inline_calendar_callbackquery)
+def calendar_callback_handler(q: types.CallbackQuery):
+    if utility.get(str(q.from_user.id) + 'date_from_check') == '1':
+        bot.answer_callback_query(q.id)
+        try:
+            return_data = inline_calendar.handler_callback(q.from_user.id, q.data)
+            if return_data is None:
+                bot.edit_message_reply_markup(chat_id=q.from_user.id, message_id=q.message.message_id,
+                                              reply_markup=inline_calendar.get_keyboard(q.from_user.id))
+            else:
+                picked_data = return_data
+                print(picked_data)
+                bot.edit_message_text(text=picked_data, chat_id=q.from_user.id, message_id=q.message.message_id,
+                                      reply_markup=inline_calendar.get_keyboard(q.from_user.id))
+                utility.update({str(q.from_user.id) + 'date_from': picked_data})
+                bot.send_message(q.from_user.id, 'Запам\'ятаю, теперь скажіть дату повернення🏠')
+                inline_calendar.init(q.from_user.id,
+                                     datetime.date.today(),
+                                     datetime.date.today(),
+                                     datetime.date.today() + datetime.timedelta(days=365))
+                bot.send_message(q.from_user.id, text='Обрана дата',
+                                 reply_markup=inline_calendar.get_keyboard(q.from_user.id))
+                utility.update({str(q.from_user.id) + 'date_to_check': '1'})
+                utility.update({str(q.from_user.id) + 'date_from_check': '0'})
+        except inline_calendar.WrongChoiceCallbackException:
+            bot.edit_message_text(text='Неправильний вибір', chat_id=q.from_user.id, message_id=q.message.message_id,
+                                  reply_markup=inline_calendar.get_keyboard(q.from_user.id))
+    if utility.get(str(q.from_user.id) + 'date_to_check') == '1':
+        bot.answer_callback_query(q.id)
+        try:
+            return_data = inline_calendar.handler_callback(q.from_user.id, q.data)
+            if return_data is None:
+                bot.edit_message_reply_markup(chat_id=q.from_user.id, message_id=q.message.message_id,
+                                              reply_markup=inline_calendar.get_keyboard(q.from_user.id))
+            else:
+                picked_data = return_data
+                print(picked_data)
+                utility.update({str(q.from_user.id) + 'date_to': picked_data})
+                bot.edit_message_text(text=picked_data, chat_id=q.from_user.id, message_id=q.message.message_id,
+                                      reply_markup=inline_calendar.get_keyboard(q.from_user.id))
+                asking_target(q)
+
+        except inline_calendar.WrongChoiceCallbackException:
+            bot.edit_message_text(text='Неправильний вибір', chat_id=q.from_user.id, message_id=q.message.message_id,
+                                  reply_markup=inline_calendar.get_keyboard(q.from_user.id))
+
+
 @bot.message_handler(commands=['reset'])
 def reset(message):
     try:
         utility.pop(str(message.chat.id) + 'place_code')
         utility.pop(str(message.chat.id) + 'date_from')
+        utility.pop(str(message.chat.id) + 'date_from_check')
         utility.pop(str(message.chat.id) + 'date_to')
+        utility.pop(str(message.chat.id) + 'date_to_check')
         utility.pop(str(message.chat.id) + 'trip_purpose')
         utility.pop(str(message.chat.id) + 'tariff1')
         utility.pop(str(message.chat.id) + 'tariff2')
@@ -145,7 +195,9 @@ def hello(message):
                          message.from_user, bot.get_me()), reply_markup=markup)
     utility = {str(message.chat.id) + 'place_code': '',
                str(message.chat.id) + 'date_from': '',
+               str(message.chat.id) + 'date_from_check': '',
                str(message.chat.id) + 'date_to': '',
+               str(message.chat.id) + 'date_to_check': '',
                str(message.chat.id) + 'trip_purpose': '',
                str(message.chat.id) + 'tariff1': '',
                str(message.chat.id) + 'tariff2': '',
@@ -173,13 +225,25 @@ def callback_inline(call):
         date_example = date_plus_day(call.message)
         bot.send_message(call.message.chat.id,
                          f'Добре! Теперь скажіть будь ласка дату виліту🖊 Дата повинна бути у форматі {date_example[0]}')
-        dbworker.set_state(call.message.chat.id, config.States.S_ASKING_DATE_TO.value)
+        inline_calendar.init(call.message.chat.id,
+                             datetime.date.today(),
+                             datetime.date.today(),
+                             datetime.date.today() + datetime.timedelta(days=365))
+        bot.send_message(call.message.chat.id, text='Обрана дата',
+                         reply_markup=inline_calendar.get_keyboard(call.message.chat.id))
+        utility.update({str(call.message.chat.id) + 'date_from_check': '1'})
     if str(call.data) == '272':
         utility.update({str(call.message.chat.id) + 'place_code': str(call.data)})
         date_example = date_plus_day(call.message)
         bot.send_message(call.message.chat.id,
                          f'Добре! Теперь скажіть будь ласка дату виліту🖊 Дата повинна бути у форматі {date_example[0]}')
-        dbworker.set_state(call.message.chat.id, config.States.S_ASKING_DATE_TO.value)
+        inline_calendar.init(call.message.chat.id,
+                             datetime.date.today(),
+                             datetime.date.today(),
+                             datetime.date.today() + datetime.timedelta(days=365))
+        bot.send_message(call.message.chat.id, text='Обрана дата',
+                         reply_markup=inline_calendar.get_keyboard(call.message.chat.id))
+        utility.update({str(call.message.chat.id) + 'date_from_check': '1'})
     if '👔Страховик' in call.message.text:
         if int(call.data) == utility.get(str(call.message.chat.id) + 'tariff1')[2]:
             print('Callback accepted1')
@@ -209,21 +273,8 @@ def callback_inline(call):
 
 
 @bot.message_handler(
-    func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S_ASKING_DATE_TO.value)
-def date_to(message):
-    date_from = message.text
-    utility.update({str(message.chat.id) + 'date_from': date_from})
-    date_example = date_plus_day(message)
-    bot.send_message(message.chat.id,
-                     f'Запам\'ятаю, теперь скажіть дату повернення🏠 Усе у тому ж форматі {date_example[1]}')
-    dbworker.set_state(message.chat.id, config.States.S_ASKING_DATE_FROM.value)
-
-
-@bot.message_handler(
     func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S_ASKING_DATE_FROM.value)
-def date_from(message):
-    date_to = message.text
-    utility.update({str(message.chat.id) + 'date_to': date_to})
+def asking_target(message):
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     button1 = types.KeyboardButton('Навчання🎓')
     button2 = types.KeyboardButton('Туризм📸')
@@ -234,10 +285,10 @@ def date_from(message):
     button7 = types.KeyboardButton('Робота💼')
     button8 = types.KeyboardButton('Небезпечна робота⛑')
     markup.add(button1, button2, button3, button4, button5, button6, button7, button8)
-    bot.send_message(message.chat.id,
+    bot.send_message(message.from_user.id,
                      'Вкажіть будь ласка ціль вашої поїздки:\nНавчання🎓\nТуризм📸\nСпорт⚽\nАктивний туризм🏄\nЕкстремальний туризм🎿\nПрофесіональний спорт🥇\nРобота💼\nНебезпечна робота⛑',
                      reply_markup=markup)
-    dbworker.set_state(message.chat.id, config.States.S_GETTING_TARGET.value)
+    dbworker.set_state(message.from_user.id, config.States.S_GETTING_TARGET.value)
 
 
 @bot.message_handler(
@@ -303,13 +354,14 @@ def getting_birth_date(message):
     q.close()
     connection.close()
     bot.send_message(message.chat.id, 'Відмінно! Ось доступні вам тарифи🔽')
+    print((datetime.datetime.strptime(str(utility.get(str(message.chat.id) + 'date_to')),
+                                           '%Y-%m-%d').date() - datetime.datetime.strptime(str(utility.get(str(message.chat.id) + 'date_from')), '%Y-%m-%d').date()).days)
     data = {
         'multivisa': 'false',
-        'coverageFrom': utility.get(str(message.chat.id) + 'date_from'),
-        'coverageTo': utility.get(str(message.chat.id) + 'date_to'),
-        'coverageDays': (datetime.strptime(utility.get(str(message.chat.id) + 'date_to'),
-                                           '%Y-%m-%d').date() - datetime.strptime(
-            utility.get(str(message.chat.id) + 'date_from'), '%Y-%m-%d').date()).days,
+        'coverageFrom': str(utility.get(str(message.chat.id) + 'date_from')),
+        'coverageTo': str(utility.get(str(message.chat.id) + 'date_to')),
+        'coverageDays': str((datetime.datetime.strptime(str(utility.get(str(message.chat.id) + 'date_to')),
+                                           '%Y-%m-%d').date() - datetime.datetime.strptime(str(utility.get(str(message.chat.id) + 'date_from')), '%Y-%m-%d').date()).days),
         'country': utility.get(str(message.chat.id) + 'place_code'),
         'risks': [
             {'risk': 1,
@@ -324,6 +376,8 @@ def getting_birth_date(message):
     json_string = json.dumps(data)
     r = requests.post('https://web.ewa.ua/ewa/api/v10/tariff/choose/tourism', headers=headers, cookies=cookies,
                       data=json_string)
+    print(r)
+    print(r.json())
     try:
         tariff1 = tariff_parsing(r.json()[0])
         tariff2 = tariff_parsing(r.json()[1])
@@ -397,6 +451,42 @@ def name_input(message):
     q.close()
     connection.close()
     bot.send_message(message.chat.id, 'Тепер введіть серію вашого закордонника')
+    dbworker.set_state(message.chat.id, config.States.S_SERIES.value)
+
+
+@bot.message_handler(
+    func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S_SERIES.value)
+def series_input(message):
+    series = message.text
+    connection = sql.connect('DATABASE.sqlite')
+    q = connection.cursor()
+    q.execute("SELECT EXISTS(SELECT 1 FROM passport WHERE id='%s')" % message.from_user.id)
+    results1 = q.fetchone()
+    if results1[0] != 1:
+        q.execute("INSERT INTO 'passport' (id) VALUES ('%s')" % message.from_user.id)
+    q.execute("UPDATE passport SET series='%s' WHERE id='%s'" % (series, message.from_user.id))
+    connection.commit()
+    q.close()
+    connection.close()
+    bot.send_message(message.chat.id, 'Введіть номер паспорта: ')
+    dbworker.set_state(message.chat.id, config.States.S_NUMBER.value)
+
+
+bot.message_handler(func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S_NUMBER.value)
+def number_taking(message):
+    number = message.text
+    if len(number) != 6:
+        bot.send_message(message.chat.id, 'Номер паспорта має містити 6 цифр. Спробуйте ще')
+        dbworker.set_state(message.chat.id, config.States.S_NUMBER.value)
+    else:
+        connection = sql.connect('DATABASE.sqlite')
+        q = connection.cursor()
+        q.execute("UPDATE passport SET number='%s' WHERE id='%s'" % (number, message.from_user.id))
+        connection.commit()
+        q.close()
+        connection.close()
+        bot.send_message(message.chat.id, 'В розробці... ')
+        # dbworker.set_state(message.chat.id, config.States.S_DATE.value)
 
 
 # BOT RUNNING

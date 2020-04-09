@@ -63,6 +63,13 @@ customer_category = 'NATURAL'
 utility = {}
 
 
+def log(message):
+    print("<!------!>")
+    print(datetime.datetime.now())
+    print("Сообщение от {0} {1} (id = {2}) \n {3}".format(message.from_user.first_name,
+                                                          message.from_user.last_name,
+                                                          str(message.from_user.id), message.text))
+
 def tariff_parsing(tariff):
     name = tariff['tariff']['name']
     insurer = tariff['tariff']['insurer']['namePrint']
@@ -94,7 +101,7 @@ def date_plus_day(message):
             2)
     if str(day_plus_seven) == '32' or str(day_plus_seven) == '31' or str(day_plus_seven) == '33' or str(
             day_plus_seven) == '34' or str(day_plus_seven) == '35' or str(day_plus_seven) == '36' or str(
-            day_plus_seven) == '37' or str(day_plus_seven) == '38':
+        day_plus_seven) == '37' or str(day_plus_seven) == '38':
         day_plus_seven = '1'
         month_plus_one = int(date_from_list[0].split('-')[1]) + 1
         date_plus_seven_day = date_from_list[0].split('-')[0] + '-' + str(month_plus_one).zfill(2) + '-' + str(
@@ -220,6 +227,7 @@ def beggining(message):
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_inline(call):
+    print(call.data)
     if str(call.data) == '273':
         utility.update({str(call.message.chat.id) + 'place_code': str(call.data)})
         date_example = date_plus_day(call.message)
@@ -244,32 +252,34 @@ def callback_inline(call):
         bot.send_message(call.message.chat.id, text='Обрана дата',
                          reply_markup=inline_calendar.get_keyboard(call.message.chat.id))
         utility.update({str(call.message.chat.id) + 'date_from_check': '1'})
-    if '👔Страховик' in call.message.text:
+    try:
         if int(call.data) == utility.get(str(call.message.chat.id) + 'tariff1')[2]:
             print('Callback accepted1')
             bot.send_message(call.message.chat.id,
-                             'Гарний вибір! Зараз вам знадобиться ваш закородонний паспорт.\nНапишіть ваше ім\'я')
+                             'Гарний вибір! Зараз вам знадобиться ваш закородонний паспорт.\nНапишіть ваше ім\'я✍')
             dbworker.set_state(call.message.chat.id, config.States.S_NAME_INPUT.value)
         if int(call.data) == utility.get(str(call.message.chat.id) + 'tariff2')[2]:
             print('Callback accepted2')
             bot.send_message(call.message.chat.id,
-                             'Гарний вибір! Зараз вам знадобиться ваш закородонний паспорт.\nНапишіть ваше ім\'я')
+                             'Гарний вибір! Зараз вам знадобиться ваш закородонний паспорт.\nНапишіть ваше ім\'я✍')
             dbworker.set_state(call.message.chat.id, config.States.S_NAME_INPUT.value)
         if int(call.data) == utility.get(str(call.message.chat.id) + 'tariff3')[2]:
             print('Callback accepted3')
             bot.send_message(call.message.chat.id,
-                             'Гарний вибір! Зараз вам знадобиться ваш закородонний паспорт.\nНапишіть ваше ім\'я')
+                             'Гарний вибір! Зараз вам знадобиться ваш закородонний паспорт.\nНапишіть ваше ім\'я✍')
             dbworker.set_state(call.message.chat.id, config.States.S_NAME_INPUT.value)
         if int(call.data) == utility.get(str(call.message.chat.id) + 'tariff4')[2]:
             print('Callback accepted4')
             bot.send_message(call.message.chat.id,
-                             'Гарний вибір! Зараз вам знадобиться ваш закородонний паспорт.\nНапишіть ваше ім\'я')
+                             'Гарний вибір! Зараз вам знадобиться ваш закородонний паспорт.\nНапишіть ваше ім\'я✍')
             dbworker.set_state(call.message.chat.id, config.States.S_NAME_INPUT.value)
         if int(call.data) == utility.get(str(call.message.chat.id) + 'tariff5')[2]:
             print('Callback accepted5')
             bot.send_message(call.message.chat.id,
-                             'Гарний вибір! Зараз вам знадобиться ваш закородонний паспорт.\nНапишіть ваше ім\'я')
+                             'Гарний вибір! Зараз вам знадобиться ваш закородонний паспорт.\nНапишіть ваше ім\'я✍')
             dbworker.set_state(call.message.chat.id, config.States.S_NAME_INPUT.value)
+    except TypeError:
+        pass
 
 
 @bot.message_handler(
@@ -355,13 +365,15 @@ def getting_birth_date(message):
     connection.close()
     bot.send_message(message.chat.id, 'Відмінно! Ось доступні вам тарифи🔽')
     print((datetime.datetime.strptime(str(utility.get(str(message.chat.id) + 'date_to')),
-                                           '%Y-%m-%d').date() - datetime.datetime.strptime(str(utility.get(str(message.chat.id) + 'date_from')), '%Y-%m-%d').date()).days)
+                                      '%Y-%m-%d').date() - datetime.datetime.strptime(
+        str(utility.get(str(message.chat.id) + 'date_from')), '%Y-%m-%d').date()).days)
     data = {
         'multivisa': 'false',
         'coverageFrom': str(utility.get(str(message.chat.id) + 'date_from')),
         'coverageTo': str(utility.get(str(message.chat.id) + 'date_to')),
         'coverageDays': str((datetime.datetime.strptime(str(utility.get(str(message.chat.id) + 'date_to')),
-                                           '%Y-%m-%d').date() - datetime.datetime.strptime(str(utility.get(str(message.chat.id) + 'date_from')), '%Y-%m-%d').date()).days),
+                                                        '%Y-%m-%d').date() - datetime.datetime.strptime(
+            str(utility.get(str(message.chat.id) + 'date_from')), '%Y-%m-%d').date()).days),
         'country': utility.get(str(message.chat.id) + 'place_code'),
         'risks': [
             {'risk': 1,
@@ -396,31 +408,31 @@ def getting_birth_date(message):
         pass
     try:
         bot.send_message(message.chat.id,
-                         f'👔Страховик: {utility.get(str(message.chat.id) + "tariff5")[0]}\n💼Назва: {utility.get(str(message.chat.id) + "tariff5")[1]}\n💵Вартість: {utility.get(str(message.chat.id) + "tariff5")[3]}',
+                         f'👔 Страховик: {utility.get(str(message.chat.id) + "tariff5")[0]}\n💼 Назва: {utility.get(str(message.chat.id) + "tariff5")[1]}\n💵 Вартість: {utility.get(str(message.chat.id) + "tariff5")[3]}',
                          reply_markup=utility.get(str(message.chat.id) + "tariff5")[5])
     except TypeError:
         pass
     try:
         bot.send_message(message.chat.id,
-                         f'👔Страховик: {utility.get(str(message.chat.id) + "tariff4")[0]}\n💼Назва: {utility.get(str(message.chat.id) + "tariff4")[1]}\n💵Вартість: {utility.get(str(message.chat.id) + "tariff4")[3]}',
+                         f'👔 Страховик: {utility.get(str(message.chat.id) + "tariff4")[0]}\n💼 Назва: {utility.get(str(message.chat.id) + "tariff4")[1]}\n💵 Вартість: {utility.get(str(message.chat.id) + "tariff4")[3]}',
                          reply_markup=utility.get(str(message.chat.id) + "tariff4")[5])
     except TypeError:
         pass
     try:
         bot.send_message(message.chat.id,
-                         f'👔Страховик: {utility.get(str(message.chat.id) + "tariff3")[0]}\n💼Назва: {utility.get(str(message.chat.id) + "tariff3")[1]}\n💵Вартість: {utility.get(str(message.chat.id) + "tariff3")[3]}',
+                         f'👔 Страховик: {utility.get(str(message.chat.id) + "tariff3")[0]}\n💼 Назва: {utility.get(str(message.chat.id) + "tariff3")[1]}\n💵 Вартість: {utility.get(str(message.chat.id) + "tariff3")[3]}',
                          reply_markup=utility.get(str(message.chat.id) + "tariff3")[5])
     except TypeError:
         pass
     try:
         bot.send_message(message.chat.id,
-                         f'👔Страховик: {utility.get(str(message.chat.id) + "tariff2")[0]}\n💼Назва: {utility.get(str(message.chat.id) + "tariff2")[1]}\n💵Вартість: {utility.get(str(message.chat.id) + "tariff2")[3]}',
+                         f'👔 Страховик: {utility.get(str(message.chat.id) + "tariff2")[0]}\n💼 Назва: {utility.get(str(message.chat.id) + "tariff2")[1]}\n💵 Вартість: {utility.get(str(message.chat.id) + "tariff2")[3]}',
                          reply_markup=utility.get(str(message.chat.id) + "tariff2")[5])
     except TypeError:
         pass
     try:
         bot.send_message(message.chat.id,
-                         f'👔Страховик: {utility.get(str(message.chat.id) + "tariff1")[0]}\n💼Назва: {utility.get(str(message.chat.id) + "tariff1")[1]}\n💵Вартість: {utility.get(str(message.chat.id) + "tariff1")[3]}',
+                         f'👔Страховик: {utility.get(str(message.chat.id) + "tariff1")[0]}\n💼 Назва: {utility.get(str(message.chat.id) + "tariff1")[1]}\n💵 Вартість: {utility.get(str(message.chat.id) + "tariff1")[3]}',
                          reply_markup=utility.get(str(message.chat.id) + "tariff1")[5])
     except TypeError:
         pass
@@ -436,7 +448,7 @@ def name_input(message):
     connection.commit()
     q.close()
     connection.close()
-    bot.send_message(message.chat.id, 'Тепер введіть вашу фамілію')
+    bot.send_message(message.chat.id, 'Введіть вашу фамілію✍')
     dbworker.set_state(message.chat.id, config.States.S_SURNAME_INPUT.value)
 
 
@@ -450,7 +462,49 @@ def name_input(message):
     connection.commit()
     q.close()
     connection.close()
-    bot.send_message(message.chat.id, 'Тепер введіть серію вашого закордонника')
+    bot.send_message(message.chat.id, 'Вашу поточну адресу проживання (у форматі місто, вулиця, дім, квартира)✍')
+    dbworker.set_state(message.chat.id, config.States.S_ADDRESS.value)
+
+
+@bot.message_handler(
+    func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S_ADDRESS.value)
+def address_input(message):
+    address = message.text
+    connection = sql.connect('DATABASE.sqlite')
+    q = connection.cursor()
+    q.execute("UPDATE user SET address='%s' WHERE id='%s'" % (address, message.from_user.id))
+    connection.commit()
+    q.close()
+    connection.close()
+    bot.send_message(message.chat.id, 'Введіть ваш номер телефону✍')
+    dbworker.set_state(message.chat.id, config.States.S_PHONE.value)
+
+
+@bot.message_handler(
+    func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S_PHONE.value)
+def phone_input(message):
+    phone = message.text
+    connection = sql.connect('DATABASE.sqlite')
+    q = connection.cursor()
+    q.execute("UPDATE user SET phone='%s' WHERE id='%s'" % (phone, message.from_user.id))
+    connection.commit()
+    q.close()
+    connection.close()
+    bot.send_message(message.chat.id, 'Тепер введіть вашу електронну пошту (сюди буде відправлений поліс)✍')
+    dbworker.set_state(message.chat.id, config.States.S_EMAIL.value)
+
+
+@bot.message_handler(
+    func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S_EMAIL.value)
+def email_input(message):
+    email = message.text
+    connection = sql.connect('DATABASE.sqlite')
+    q = connection.cursor()
+    q.execute("UPDATE user SET email='%s' WHERE id='%s'" % (email, message.from_user.id))
+    connection.commit()
+    q.close()
+    connection.close()
+    bot.send_message(message.chat.id, 'Тепер введіть серію вашого закордонника✍')
     dbworker.set_state(message.chat.id, config.States.S_SERIES.value)
 
 
@@ -468,25 +522,273 @@ def series_input(message):
     connection.commit()
     q.close()
     connection.close()
-    bot.send_message(message.chat.id, 'Введіть номер паспорта: ')
+    bot.send_message(message.chat.id, 'Введіть номер закордонного паспорта✍')
     dbworker.set_state(message.chat.id, config.States.S_NUMBER.value)
 
 
-bot.message_handler(func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S_NUMBER.value)
+@bot.message_handler(func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S_NUMBER.value)
 def number_taking(message):
     number = message.text
-    if len(number) != 6:
-        bot.send_message(message.chat.id, 'Номер паспорта має містити 6 цифр. Спробуйте ще')
-        dbworker.set_state(message.chat.id, config.States.S_NUMBER.value)
+    # if len(number) != 6:
+    #     bot.send_message(message.chat.id, 'Номер паспорта має містити 6 цифр. Спробуйте ще')
+    #     dbworker.set_state(message.chat.id, config.States.S_NUMBER.value)
+    # else:
+    connection = sql.connect('DATABASE.sqlite')
+    q = connection.cursor()
+    q.execute("UPDATE passport SET number='%s' WHERE id='%s'" % (number, message.from_user.id))
+    connection.commit()
+    q.close()
+    connection.close()
+    prefinal(message)
+
+
+def prefinal(message):
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    button1 = types.KeyboardButton('Так✔')
+    button2 = types.KeyboardButton('Змінити✖')
+    button3 = types.KeyboardButton('Спочатку🔄')
+    markup.add(button1, button2, button3)
+    bot.send_message(message.chat.id, 'Відмінно! Перевірте правильність введених даних.')
+    connection = sql.connect('DATABASE.sqlite')
+    q = connection.cursor()
+    q.execute("SELECT * from user WHERE id='%s'" % message.from_user.id)
+    results = q.fetchall()
+    q.execute("SELECT * from passport WHERE id='%s'" % message.from_user.id)
+    results1 = q.fetchall()
+    connection.commit()
+    q.close()
+    connection.close()
+    try:
+        surname = results[0][1]
+    except IndexError:
+        surname = ''
+    try:
+        name = results[0][2]
+    except IndexError:
+        name = ''
+    try:
+        birth = results[0][3]
+    except IndexError:
+        birth = ''
+    try:
+        reg_addres = results[0][4]
+    except IndexError:
+        reg_addres = ''
+    try:
+        email = results[0][5]
+    except IndexError:
+        email = ''
+    try:
+        phone = results[0][6]
+    except IndexError:
+        phone = ''
+    try:
+        series = results1[0][1]
+    except IndexError:
+        series = ''
+    try:
+        doc_num = results1[0][2]
+    except IndexError:
+        doc_num = ''
+    if str(utility.get(str(message.chat.id) + 'place_code')) == '273':
+        place = 'Увесь світ🌍'
     else:
-        connection = sql.connect('DATABASE.sqlite')
-        q = connection.cursor()
-        q.execute("UPDATE passport SET number='%s' WHERE id='%s'" % (number, message.from_user.id))
-        connection.commit()
-        q.close()
-        connection.close()
-        bot.send_message(message.chat.id, 'В розробці... ')
-        # dbworker.set_state(message.chat.id, config.States.S_DATE.value)
+        place = 'Європа🇪🇺'
+    coverage = str((datetime.datetime.strptime(str(utility.get(str(message.chat.id) + 'date_to')),
+                                               '%Y-%m-%d').date() - datetime.datetime.strptime(
+        str(utility.get(str(message.chat.id) + 'date_from')), '%Y-%m-%d').date()).days)
+    bot.send_message(message.chat.id,
+                     f"Дані про подорож✈\n\nМісце:  {place}\nДата виліту: {utility.get(str(message.chat.id) + 'date_from')}\nДата повернення:{utility.get(str(message.chat.id) + 'date_to')}\nКількість дней покриття: {coverage}\nЦіль поїздки: {utility.get(str(message.chat.id) + 'trip_purpose')}\n\nВаша особиста інформація😉\n\nПрізвище:  {surname}\nІм'я:  {name}\nДата народждения:  {birth}\nАдреса реєстрації:  {reg_addres}\nEMAIL:  {email}\nТелефон:  {phone}\n\nДані вашого документа📖\n\nСерія/Запис документа:  {series}\nНомер документа:  {doc_num}",
+                     reply_markup=markup)
+    dbworker.clear_db(message.chat.id)
+
+
+@bot.message_handler(func=lambda message: message.text == 'Спочатку🔄')
+def again(message):
+    beggining(message)
+
+
+@bot.message_handler(func=lambda message: message.text == 'Так✔')
+def yes(message):
+    connection = sql.connect('DATABASE.sqlite')
+    q = connection.cursor()
+    q.execute("SELECT * from user WHERE id='%s'" % message.from_user.id)
+    results = q.fetchall()
+    q.execute("SELECT * from passport WHERE id='%s'" % message.from_user.id)
+    results1 = q.fetchall()
+    connection.commit()
+    q.close()
+    connection.close()
+    bot.send_message(message.chat.id, 'Добре!👍\nПереходжу до формування договору📝\nЗачекайте⏳',
+                     reply_markup=types.ReplyKeyboardRemove())
+
+
+@bot.message_handler(func=lambda message: message.text == 'Змінити✖')
+def no(message):
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    button1 = types.KeyboardButton('Прізвище')
+    button2 = types.KeyboardButton("І'мя")
+    button3 = types.KeyboardButton('Дата нарождения')
+    button4 = types.KeyboardButton('Адреса реєстрації')
+    button5 = types.KeyboardButton('EMAIL')
+    button6 = types.KeyboardButton('Телефон')
+    button7 = types.KeyboardButton('Серія документа')
+    button8 = types.KeyboardButton('Номер документа')
+    markup.add(button1, button2, button3, button4, button5, button6, button7, button8)
+    bot.send_message(message.chat.id, 'Виберіть що хочете змінити:', reply_markup=markup)
+
+
+@bot.message_handler(func=lambda message: message.text == 'Прізвище')
+def surname_set(message):
+    bot.send_message(message.chat.id, 'Введіть ваше прізвище(українською):✍')
+    dbworker.set_state(message.chat.id, config.States.S1_SURNAME.value)
+
+
+@bot.message_handler(func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S1_SURNAME.value)
+def surname_taking_again(message):
+    log(message)
+    v = message.text
+    connection = sql.connect('DATABASE.sqlite')
+    q = connection.cursor()
+    q.execute("UPDATE user SET surname='%s' WHERE id='%s'" % (v, message.from_user.id))
+    connection.commit()
+    q.close()
+    connection.close()
+    prefinal(message)
+
+
+@bot.message_handler(func=lambda message: message.text == "І'мя")
+def name_set(message):
+    bot.send_message(message.chat.id, 'Введіть ваше імя(українською):✍')
+    dbworker.set_state(message.chat.id, config.States.S1_NAME.value)
+
+
+@bot.message_handler(func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S1_NAME.value)
+def name_taking_again(message):
+    log(message)
+    v = message.text
+    connection = sql.connect('DATABASE.sqlite')
+    q = connection.cursor()
+    q.execute("UPDATE user SET name='%s' WHERE id='%s'" % (v, message.from_user.id))
+    connection.commit()
+    q.close()
+    connection.close()
+    prefinal(message)
+
+
+@bot.message_handler(func=lambda message: message.text == 'Дата нарождения')
+def date_set(message):
+    bot.send_message(message.chat.id, 'Введіть вашу дату нарождения(в форматі РРРР-ММ-ДД):✍')
+    dbworker.set_state(message.chat.id, config.States.S1_DATE_OF_BIRTH.value)
+
+
+@bot.message_handler(
+    func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S1_DATE_OF_BIRTH.value)
+def date_taking_again(message):
+    log(message)
+    v = message.text
+    connection = sql.connect('DATABASE.sqlite')
+    q = connection.cursor()
+    q.execute("UPDATE user SET date_of_birth='%s' WHERE id='%s'" % (v, message.from_user.id))
+    connection.commit()
+    q.close()
+    connection.close()
+    prefinal(message)
+
+
+@bot.message_handler(func=lambda message: message.text == 'Адреса реєстрації')
+def address_set(message):
+    bot.send_message(message.chat.id, 'Введіть вашу адресу прописки(в форматі "Місто,Вулиця,Дім,Квартира"):✍')
+    dbworker.set_state(message.chat.id, config.States.S1_ADDRESS.value)
+
+
+@bot.message_handler(func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S1_ADDRESS.value)
+def address_taking_again(message):
+    log(message)
+    v = message.text
+    connection = sql.connect('DATABASE.sqlite')
+    q = connection.cursor()
+    q.execute("UPDATE user SET address='%s' WHERE id='%s'" % (v, message.from_user.id))
+    connection.commit()
+    q.close()
+    connection.close()
+    prefinal(message)
+
+
+@bot.message_handler(func=lambda message: message.text == 'EMAIL')
+def email_set(message):
+    bot.send_message(message.chat.id, 'Введіть ваш email(сюди буде висланий поліс):✍')
+    dbworker.set_state(message.chat.id, config.States.S1_EMAIL.value)
+
+
+@bot.message_handler(func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S1_EMAIL.value)
+def email_taking_again(message):
+    log(message)
+    v = message.text
+    connection = sql.connect('DATABASE.sqlite')
+    q = connection.cursor()
+    q.execute("UPDATE user SET email='%s' WHERE id='%s'" % (v, message.from_user.id))
+    connection.commit()
+    q.close()
+    connection.close()
+    prefinal(message)
+
+
+@bot.message_handler(func=lambda message: message.text == 'Телефон')
+def phone_set(message):
+    bot.send_message(message.chat.id, 'Введіть ваш номер телефону:✍')
+    dbworker.set_state(message.chat.id, config.States.S1_PHONE.value)
+
+
+@bot.message_handler(func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S1_PHONE.value)
+def phone_taking_again(message):
+    log(message)
+    v = message.text
+    connection = sql.connect('DATABASE.sqlite')
+    q = connection.cursor()
+    q.execute("UPDATE user SET phone='%s' WHERE id='%s'" % (v, message.from_user.id))
+    connection.commit()
+    q.close()
+    connection.close()
+    prefinal(message)
+
+
+@bot.message_handler(func=lambda message: message.text == 'Серія документа')
+def series_set(message):
+    bot.send_message(message.chat.id, 'Введіть вашу серію документа:✍')
+    dbworker.set_state(message.chat.id, config.States.S1_SERIES.value)
+
+
+@bot.message_handler(func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S1_SERIES.value)
+def series_taking_again(message):
+    log(message)
+    v = message.text
+    connection = sql.connect('DATABASE.sqlite')
+    q = connection.cursor()
+    q.execute("UPDATE passport SET series='%s' WHERE id='%s'" % (v, message.from_user.id))
+    connection.commit()
+    q.close()
+    connection.close()
+    prefinal(message)
+
+
+@bot.message_handler(func=lambda message: message.text == 'Номер документа')
+def number_set(message):
+    bot.send_message(message.chat.id, 'Введіть ваш номер документа:✍')
+    dbworker.set_state(message.chat.id, config.States.S1_NUMBER.value)
+
+
+@bot.message_handler(func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S1_NUMBER.value)
+def number_taking_again(message):
+    log(message)
+    v = message.text
+    connection = sql.connect('DATABASE.sqlite')
+    q = connection.cursor()
+    q.execute("UPDATE passport SET number='%s' WHERE id='%s'" % (v, message.from_user.id))
+    connection.commit()
+    q.close()
+    connection.close()
+    prefinal(message)
 
 
 # BOT RUNNING

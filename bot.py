@@ -4,6 +4,7 @@ from telebot import types
 import requests
 import dbworker
 import json
+import random
 import datetime
 import sqlite3 as sql
 import inline_calendar
@@ -70,16 +71,19 @@ def log(message):
                                                           message.from_user.last_name,
                                                           str(message.from_user.id), message.text))
 
+
 def tariff_parsing(tariff):
     name = tariff['tariff']['name']
     insurer = tariff['tariff']['insurer']['namePrint']
     id = tariff['tariff']['id']
     payment = tariff['payment']
     discounted_payment = tariff['discountedPayment']
+    risk_amount = tariff['risks'][0]['amount']
+    print('Risk amount:  ' + str(risk_amount))
     markup = types.InlineKeyboardMarkup()
     button = types.InlineKeyboardButton(text='Оформити', callback_data=id)
     markup.add(button)
-    return insurer, name, id, payment, discounted_payment, markup
+    return insurer, name, id, payment, discounted_payment, markup, risk_amount
 
 
 def date_plus_day(message):
@@ -171,6 +175,12 @@ def reset(message):
         utility.pop(str(message.chat.id) + 'tariff3')
         utility.pop(str(message.chat.id) + 'tariff4')
         utility.pop(str(message.chat.id) + 'tariff5')
+        utility.pop(str(message.chat.id) + 'tariff_risk_amount')
+        utility.pop(str(message.chat.id) + 'tariff_name')
+        utility.pop(str(message.chat.id) + 'contract_id')
+        utility.pop(str(message.chat.id) + 'tariff_payment')
+        utility.pop(str(message.chat.id) + 'tariff_discounted_payment')
+        utility.pop(str(message.chat.id) + 'order')
     except KeyError:
         pass
     bot.send_message(message.chat.id, 'Бот готовий до повторного використання')
@@ -210,7 +220,14 @@ def hello(message):
                str(message.chat.id) + 'tariff2': '',
                str(message.chat.id) + 'tariff3': '',
                str(message.chat.id) + 'tariff4': '',
-               str(message.chat.id) + 'tariff5': ''}
+               str(message.chat.id) + 'tariff5': '',
+               str(message.chat.id) + 'tariff_name': '',
+               str(message.chat.id) + 'tariff_risk_amount': '',
+               str(message.chat.id) + 'contract_id': '',
+               str(message.chat.id) + 'tariff_payment': '',
+               str(message.chat.id) + 'tariff_discounted_payment': '',
+               str(message.chat.id) + 'order': ''
+               }
 
 
 @bot.message_handler(func=lambda message: message.text == 'Оформити страхування')
@@ -255,28 +272,58 @@ def callback_inline(call):
     try:
         if int(call.data) == utility.get(str(call.message.chat.id) + 'tariff1')[2]:
             print('Callback accepted1')
+            utility.update({str(call.message.chat.id) + 'tariff_risk_amount':
+                                utility.get(str(call.message.chat.id) + 'tariff1')[6]})
+            utility.update(
+                {str(call.message.chat.id) + 'tariff_payment': utility.get(str(call.message.chat.id) + 'tariff1')[3]})
+            utility.update(
+                {str(call.message.chat.id) + 'tariff_name': utility.get(str(call.message.chat.id) + 'tariff1')[1]})
             bot.send_message(call.message.chat.id,
-                             'Гарний вибір! Зараз вам знадобиться ваш закородонний паспорт.\nНапишіть ваше ім\'я✍')
+                             'Гарний вибір! Зараз вам знадобиться ваш закородонний паспорт.\nНапишіть ваше ім\'я (латинськими літерами)✍')
             dbworker.set_state(call.message.chat.id, config.States.S_NAME_INPUT.value)
         if int(call.data) == utility.get(str(call.message.chat.id) + 'tariff2')[2]:
             print('Callback accepted2')
+            utility.update({str(call.message.chat.id) + 'tariff_risk_amount':
+                                utility.get(str(call.message.chat.id) + 'tariff2')[6]})
+            utility.update(
+                {str(call.message.chat.id) + 'tariff_payment': utility.get(str(call.message.chat.id) + 'tariff2')[3]})
+            utility.update(
+                {str(call.message.chat.id) + 'tariff_name': utility.get(str(call.message.chat.id) + 'tariff2')[1]})
             bot.send_message(call.message.chat.id,
-                             'Гарний вибір! Зараз вам знадобиться ваш закородонний паспорт.\nНапишіть ваше ім\'я✍')
+                             'Гарний вибір! Зараз вам знадобиться ваш закородонний паспорт.\nНапишіть ваше ім\'я (латинськими літерами)✍')
             dbworker.set_state(call.message.chat.id, config.States.S_NAME_INPUT.value)
         if int(call.data) == utility.get(str(call.message.chat.id) + 'tariff3')[2]:
             print('Callback accepted3')
+            utility.update({str(call.message.chat.id) + 'tariff_risk_amount':
+                                utility.get(str(call.message.chat.id) + 'tariff3')[6]})
+            utility.update(
+                {str(call.message.chat.id) + 'tariff_payment': utility.get(str(call.message.chat.id) + 'tariff3')[3]})
+            utility.update(
+                {str(call.message.chat.id) + 'tariff_name': utility.get(str(call.message.chat.id) + 'tariff3')[1]})
             bot.send_message(call.message.chat.id,
-                             'Гарний вибір! Зараз вам знадобиться ваш закородонний паспорт.\nНапишіть ваше ім\'я✍')
+                             'Гарний вибір! Зараз вам знадобиться ваш закородонний паспорт.\nНапишіть ваше ім\'я (латинськими літерами)✍')
             dbworker.set_state(call.message.chat.id, config.States.S_NAME_INPUT.value)
         if int(call.data) == utility.get(str(call.message.chat.id) + 'tariff4')[2]:
             print('Callback accepted4')
+            utility.update({str(call.message.chat.id) + 'tariff_risk_amount':
+                                utility.get(str(call.message.chat.id) + 'tariff4')[6]})
+            utility.update(
+                {str(call.message.chat.id) + 'tariff_payment': utility.get(str(call.message.chat.id) + 'tariff4')[3]})
+            utility.update(
+                {str(call.message.chat.id) + 'tariff_name': utility.get(str(call.message.chat.id) + 'tariff4')[1]})
             bot.send_message(call.message.chat.id,
-                             'Гарний вибір! Зараз вам знадобиться ваш закородонний паспорт.\nНапишіть ваше ім\'я✍')
+                             'Гарний вибір! Зараз вам знадобиться ваш закородонний паспорт.\nНапишіть ваше ім\'я (латинськими літерами)✍')
             dbworker.set_state(call.message.chat.id, config.States.S_NAME_INPUT.value)
         if int(call.data) == utility.get(str(call.message.chat.id) + 'tariff5')[2]:
             print('Callback accepted5')
+            utility.update({str(call.message.chat.id) + 'tariff_risk_amount':
+                                utility.get(str(call.message.chat.id) + 'tariff5')[6]})
+            utility.update(
+                {str(call.message.chat.id) + 'tariff_payment': utility.get(str(call.message.chat.id) + 'tariff5')[3]})
+            utility.update(
+                {str(call.message.chat.id) + 'tariff_name': utility.get(str(call.message.chat.id) + 'tariff5')[1]})
             bot.send_message(call.message.chat.id,
-                             'Гарний вибір! Зараз вам знадобиться ваш закородонний паспорт.\nНапишіть ваше ім\'я✍')
+                             'Гарний вибір! Зараз вам знадобиться ваш закородонний паспорт.\nНапишіть ваше ім\'я (латинськими літерами)✍')
             dbworker.set_state(call.message.chat.id, config.States.S_NAME_INPUT.value)
     except TypeError:
         pass
@@ -448,7 +495,7 @@ def name_input(message):
     connection.commit()
     q.close()
     connection.close()
-    bot.send_message(message.chat.id, 'Введіть вашу фамілію✍')
+    bot.send_message(message.chat.id, 'Введіть вашу фамілію (латинськими літерам)✍')
     dbworker.set_state(message.chat.id, config.States.S_SURNAME_INPUT.value)
 
 
@@ -616,11 +663,181 @@ def yes(message):
     results = q.fetchall()
     q.execute("SELECT * from passport WHERE id='%s'" % message.from_user.id)
     results1 = q.fetchall()
+    print(results1)
     connection.commit()
     q.close()
     connection.close()
     bot.send_message(message.chat.id, 'Добре!👍\nПереходжу до формування договору📝\nЗачекайте⏳',
                      reply_markup=types.ReplyKeyboardRemove())
+    print('Risk amount:' + str(utility.get(str(message.chat.id) + 'tariff_risk_amount')))
+    contract_data = {
+        'type': 'tourism',
+        'salePoint': {
+            'id': sale_point
+        },
+        'user': {
+            'id': user
+        },
+        'tariff': {
+            'type': 'tourism',
+            'id': utility.get(str(message.chat.id) + 'tariff1')[2]
+        },
+        'date': str(datetime.datetime.fromtimestamp(int(message.date)).strftime('%Y-%m-%d')),
+        'dateFrom': str(utility.get(str(message.chat.id) + 'date_from')) + 'T00:00:00.000+0000',
+        'coverageDays': str((datetime.datetime.strptime(str(utility.get(str(message.chat.id) + 'date_to')),
+                                                        '%Y-%m-%d').date() - datetime.datetime.strptime(
+            str(utility.get(str(message.chat.id) + 'date_from')), '%Y-%m-%d').date()).days),
+        'customer': {
+            'dontHaveCode': 'true',
+            'nameLast': results[0][1],
+            'nameFirst': results[0][2],
+            'address': results[0][4],
+            'phone': results[0][6],
+            'email': results[0][5],
+            'birthDate': results[0][3],
+            'document': {
+                'type': 'EXTERNAL_PASSPORT',
+                'series': results1[0][1],
+                'number': results1[0][2]
+            },
+            'legal': 'true'
+        },
+        'insuranceObject': {
+            'type': 'person',
+            'document': {
+                'type': 'EXTERNAL_PASSPORT',
+                'series': results1[0][1],
+                'number': results1[0][2]
+            },
+            'address': results[0][4],
+            'email': results[0][5],
+            'dontHaveCode': 'true',
+            'nameLast': results[0][1],
+            'nameFirst': results[0][2],
+            'birthDate': results[0][3],
+            'phone': results[0][6]
+        },
+        'risks': [
+            {'risk': {'id': 1},
+             'insuranceAmount': utility.get(str(message.chat.id) + 'tariff_risk_amount')}
+        ],
+        'customFields': [
+            {'code': 'program_of_trip',
+             'value': 'econom'},
+            {'code': 'purpose_of_trip',
+             'value': utility.get(str(message.chat.id) + 'trip_purpose')}
+        ],
+        'state': 'DRAFT',
+        'multiObject': 'false',
+        'multivisa': 'false',
+        'country': {
+            'id': utility.get(str(message.chat.id) + 'place_code')
+        }
+    }
+    print(contract_data)
+    url_for_save_contract = 'https://web.ewa.ua/ewa/api/v10/contract/save'
+    json_string = json.dumps(contract_data)
+    r = requests.post(url_for_save_contract, headers=headers, cookies=cookies,
+                      data=json_string)  # Перевод договора в состояние ЧЕРНОВИК
+    print(r)
+    print(r.json())
+    bad_data = 0
+    try:
+        id_contract = r.json()['id']
+        utility.update({str(message.chat.id) + 'contract_id': id_contract})
+    except KeyError:
+        print('Какое-то из значений было введено неправильно')
+        bot.send_message(message.chat.id, 'Якісь дані були введені некоректно. Спробуйте ще')
+        bad_data = 1
+    if bad_data == 1:
+        prefinal(message)
+    else:
+        contract = utility.get(str(message.chat.id) + 'contract_id')
+        # print(contract)
+        # url_for_req = f'https://web.ewa.ua/ewa/api/v10/contract/{contract}/state/REQUEST'
+        # print(url_for_req)
+        # r1 = requests.post(url_for_req, headers=headers, cookies=cookies)  # перевод договора в состояние ЗАЯВЛЕН
+        # print(r1)
+        # print(r1.reason)
+        url_for_otp = f'https://web.ewa.ua/ewa/api/v10/contract/{contract}/otp/send?customer=true'
+        r_otp = requests.get(url_for_otp, headers=headers, cookies=cookies)
+        print(r_otp)
+        bot.send_message(message.chat.id,
+                         '📲На ваш мобільний телефон було відправлено СМС з паролем для підпису електронного полісу.\n\nВведіть пароль з повідомлення✍')
+        dbworker.set_state(message.chat.id, config.States.S_OTP.value)
+
+
+@bot.message_handler(func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S_OTP.value)
+def otp(message):
+    otp = message.text
+    contract = utility.get(str(message.chat.id) + 'contract_id')
+    url_otp_2 = f'https://web.ewa.ua/ewa/api/v9/contract/{contract}/otp?customer={otp}'
+    r_otp_2 = requests.get(url_otp_2, headers=headers, cookies=cookies)
+    print(r_otp_2)
+    connection = sql.connect('DATABASE.sqlite')
+    q = connection.cursor()
+    q.execute("SELECT * from user WHERE id='%s'" % message.from_user.id)
+    results = q.fetchall()
+    connection.commit()
+    q.close()
+    connection.close()
+
+    random_integer = random.randint(10000, 99999)
+    payment = utility.get(str(message.chat.id) + 'tariff_payment')
+    product_name = f"ТУРИЗМ від - {utility.get(str(message.chat.id) + 'tariff_name')}"
+
+    order = f'order{str(random_integer)}'
+    amount = round(payment * 100.)
+    bot.send_invoice(message.chat.id,
+                     title=product_name,
+                     description='Страховий поліс ТУРИЗМ',
+                     invoice_payload=order,
+                     provider_token=config.liqpay_token,
+                     currency='UAH',
+                     prices=[types.LabeledPrice(label='Полис', amount=amount)],
+                     start_parameter='true',
+                     photo_url='https://aic.com.ua/img/pyt3.jpg')
+    utility.update({str(message.chat.id) + 'order': order})
+
+
+@bot.pre_checkout_query_handler(func=lambda query: True)
+def process_pre_checkout_query(pre_checkout_query: types.PreCheckoutQuery):
+    bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True)
+
+
+@bot.message_handler(content_types='successful_payment')
+def process_successful_payment(message: types.Message):
+    print(message.successful_payment)
+    # total_amount = message.successful_payment['total_amount']  TypeError: 'SuccessfulPayment' object is not subscriptable
+    # payload = message.successful_payment['invoice_payload']
+    print('Платёж прошел. Всё найс')
+    contract = utility.get(str(message.chat.id) + 'contract_id')
+    url_for_emi = f'https://web.ewa.ua/ewa/api/v9/contract/{contract}/state/EMITTED'
+    rf = requests.post(url_for_emi, headers=headers, cookies=cookies)  # перевод договора в состояние ЗАКЛЮЧЕН
+    print(rf)
+    bot.send_message(message.chat.id,
+                     '👌Платіж пройшов успішно!\n\n📬Перевірте пошту, яку вказували при оформленні - ваш електронний поліс у форматі PDF має бути там.\n\n👏Якщо ви задоволені моєю роботою - поділіться мною, будь-ласка, з другом  - https://t.me/osago_insurance_bot.')
+    dbworker.clear_db(message.chat.id)
+    try:
+        utility.pop(str(message.chat.id) + 'place_code')
+        utility.pop(str(message.chat.id) + 'date_from')
+        utility.pop(str(message.chat.id) + 'date_from_check')
+        utility.pop(str(message.chat.id) + 'date_to')
+        utility.pop(str(message.chat.id) + 'date_to_check')
+        utility.pop(str(message.chat.id) + 'trip_purpose')
+        utility.pop(str(message.chat.id) + 'tariff1')
+        utility.pop(str(message.chat.id) + 'tariff2')
+        utility.pop(str(message.chat.id) + 'tariff3')
+        utility.pop(str(message.chat.id) + 'tariff4')
+        utility.pop(str(message.chat.id) + 'tariff5')
+        utility.pop(str(message.chat.id) + 'tariff_risk_amount')
+        utility.pop(str(message.chat.id) + 'tariff_name')
+        utility.pop(str(message.chat.id) + 'contract_id')
+        utility.pop(str(message.chat.id) + 'tariff_payment')
+        utility.pop(str(message.chat.id) + 'tariff_discounted_payment')
+        utility.pop(str(message.chat.id) + 'order')
+    except KeyError:
+        pass
 
 
 @bot.message_handler(func=lambda message: message.text == 'Змінити✖')

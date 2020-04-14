@@ -781,11 +781,9 @@ def otp(message):
     connection.commit()
     q.close()
     connection.close()
-
     random_integer = random.randint(10000, 99999)
     payment = utility.get(str(message.chat.id) + 'tariff_payment')
     product_name = f"ТУРИЗМ від - {utility.get(str(message.chat.id) + 'tariff_name')}"
-
     order = f'order{str(random_integer)}'
     amount = round(payment * 100.)
     bot.send_invoice(message.chat.id,
@@ -812,11 +810,11 @@ def process_successful_payment(message: types.Message):
     # payload = message.successful_payment['invoice_payload']
     print('Платёж прошел. Всё найс')
     contract = utility.get(str(message.chat.id) + 'contract_id')
-    url_for_emi = f'https://web.ewa.ua/ewa/api/v9/contract/{contract}/state/EMITTED'
+    url_for_emi = f'https://web.ewa.ua/ewa/api/v10/contract/{contract}/state/SIGNED'
     rf = requests.post(url_for_emi, headers=headers, cookies=cookies)  # перевод договора в состояние ЗАКЛЮЧЕН
     print(rf)
     bot.send_message(message.chat.id,
-                     '👌Платіж пройшов успішно!\n\n📬Перевірте пошту, яку вказували при оформленні - ваш електронний поліс у форматі PDF має бути там.\n\n👏Якщо ви задоволені моєю роботою - поділіться мною, будь-ласка, з другом  - https://t.me/osago_insurance_bot.')
+                     '👌Платіж пройшов успішно!\n\n📬Перевірте пошту, яку вказували при оформленні - ваш електронний поліс у форматі PDF має бути там.\n\n👏Якщо ви задоволені моєю роботою - поділіться мною, будь-ласка, з другом  - https://t.me/tourism_insurance_bot.')
     dbworker.clear_db(message.chat.id)
     try:
         utility.pop(str(message.chat.id) + 'place_code')

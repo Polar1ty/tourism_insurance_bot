@@ -1,3 +1,9 @@
+"""
+    Bot created for easily arranging travel insurance
+    Works with PyTelegramBotApi, sqlite3
+    Created by https://github.com/Polar1ty
+"""
+
 import config
 import telebot
 from telebot import types
@@ -8,9 +14,13 @@ import random
 import datetime
 import sqlite3 as sql
 import inline_calendar
+import os
+import time
 
+# creating our bot
 bot = telebot.TeleBot(config.TOKEN)
 
+# taking some necessary information from your EWA account
 headers = {
     'content-type': 'application/x-www-form-urlencoded',
 }
@@ -65,6 +75,7 @@ utility = {}
 
 
 def log(message):
+    """ Logging user messages """
     print("<!------!>")
     print(datetime.datetime.now())
     print("Сообщение от {0} {1} (id = {2}) \n {3}".format(message.from_user.first_name,
@@ -73,6 +84,7 @@ def log(message):
 
 
 def tariff_parsing(tariff):
+    """ This func parses each tariff on necessary information """
     name = tariff['tariff']['name']
     insurer = tariff['tariff']['insurer']['namePrint']
     id = tariff['tariff']['id']
@@ -86,16 +98,17 @@ def tariff_parsing(tariff):
 
 
 def date_plus_day(message):
+    """ This func adds one day/7 days to current date """
     date_raw = message.date
     date_from = datetime.datetime.fromtimestamp(int(date_raw)).strftime('%Y-%m-%d %H:%M:%S')
     date_from_list = date_from.split(' ')
     day_plus_one = int(date_from_list[0].split('-')[2]) + 1
     day_plus_seven = int(date_from_list[0].split('-')[2]) + 7
     date_plus_one_day = date_from_list[0].split('-')[0] + '-' + date_from_list[0].split('-')[1] + '-' + str(
-        day_plus_one).zfill(2)  # Завтрашняя дата
+        day_plus_one).zfill(2)  # tomorrow date
     date_plus_seven_day = date_from_list[0].split('-')[0] + '-' + date_from_list[0].split('-')[1] + '-' + str(
         day_plus_seven).zfill(
-        2)  # Дата +7 дней
+        2)  # date after week
     if str(day_plus_one) == '32' or str(day_plus_one) == '31':
         day_plus_one = '1'
         month_plus_one = int(date_from_list[0].split('-')[1]) + 1
@@ -115,6 +128,7 @@ def date_plus_day(message):
 
 @bot.callback_query_handler(func=inline_calendar.is_inline_calendar_callbackquery)
 def calendar_callback_handler(q: types.CallbackQuery):
+    """ Handle all inline calendars """
     if utility.get(str(q.from_user.id) + 'date_from_check') == '1':
         bot.answer_callback_query(q.id)
         try:
@@ -162,6 +176,7 @@ def calendar_callback_handler(q: types.CallbackQuery):
 
 @bot.message_handler(commands=['reset'])
 def reset(message):
+    """ Clear all unnecessary data from utility dict """
     try:
         utility.pop(str(message.chat.id) + 'place_code')
         utility.pop(str(message.chat.id) + 'date_from')
@@ -182,21 +197,125 @@ def reset(message):
         utility.pop(str(message.chat.id) + 'order')
     except KeyError:
         pass
-    bot.send_message(message.chat.id, 'Бот готовий до повторного використання')
+    bot.send_message(message.chat.id, 'Бот готовий до повторного використання. Напишіть /start')
 
 
 @bot.message_handler(commands=['help'])
 def help(message):
-    bot.send_message(message.chat.id, 'Зверніться до служби підтримки')
+    """ Here should be some support info """
+    bot.send_message(message.chat.id, 'Напишіть ваше питання, воно буде надіслане до оператора служби підтримки.')
+    dbworker.set_state(message.chat.id, config.States.S_HELP.value)
+
+
+@bot.message_handler(
+    func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S_HELP.value)
+def getting_help_msg(message):
+    help_msg = message.text
+    try:
+        doc_type = utility.get(str(message.chat.id) + 'doc_type')
+    except KeyError:
+        doc_type = ' '
+    connection = sql.connect('DATABASE.sqlite')
+    q = connection.cursor()
+    q.execute("SELECT * from user WHERE id='%s'" % message.from_user.id)
+    results = q.fetchall()
+    q.execute("SELECT * from passport WHERE id='%s'" % message.from_user.id)
+    results1 = q.fetchall()
+    connection.commit()
+    q.close()
+    connection.close()
+    try:
+        model = results[0][1]
+    except IndexError:
+        model = ''
+    try:
+        VIN = results[0][2]
+    except IndexError:
+        VIN = ''
+    try:
+        reg_number = results[0][3]
+    except IndexError:
+        reg_number = ''
+    try:
+        category = results[0][4]
+    except IndexError:
+        category = ''
+    try:
+        year_car = results[0][5]
+    except IndexError:
+        year_car = ''
+    try:
+        surname = results[0][6]
+    except IndexError:
+        surname = ''
+    try:
+        name = results[0][7]
+    except IndexError:
+        name = ''
+    try:
+        patronymic = results[0][8]
+    except IndexError:
+        patronymic = ''
+    try:
+        birth = results[0][9]
+    except IndexError:
+        birth = ''
+    try:
+        reg_addres = results[0][10]
+    except IndexError:
+        reg_addres = ''
+    try:
+        INN = results[0][11]
+    except IndexError:
+        INN = ''
+    try:
+        email = results[0][12]
+    except IndexError:
+        email = ''
+    try:
+        phone = results[0][13]
+    except IndexError:
+        phone = ''
+    try:
+        series = results1[0][1]
+    except IndexError:
+        series = ''
+    try:
+        doc_num = results1[0][2]
+    except IndexError:
+        doc_num = ''
+    try:
+        date = results1[0][3]
+    except IndexError:
+        date = ''
+    try:
+        organ = results1[0][4]
+    except IndexError:
+        organ = ''
+    with open(f'{message.from_user.id}.txt', 'a', encoding='utf8') as f:
+        f.write(
+            f"# -*- coding: utf8 -*-\n\n\nДані автомобіля🚘\n\nМодель:  {model}\nVIN-код:  {VIN}\nРеєстраційний номер:  {reg_number}\nКатегорія:  {category}\nРік випуску:  {year_car}\n\nВаша особиста інформація😉\n\nПрізвище:  {surname}\nІм'я:  {name}\nПо-батькові:  {patronymic}\nДата народждения:  {birth}\nАдреса реєстрації:  {reg_addres}\nІНПП:  {INN}\nEMAIL:  {email}\nТелефон:  {phone}\n\nДані вашого документа📖\n\nТип документа: {doc_type}\nСерія/Запис документа:  {series}\nНомер документа:  {doc_num}\nДата видачі:  {date}\nОрган, що видав:  {organ}")
+        time.sleep(1)
+    bot.send_document(config.help_chat_id, open(f'{message.from_user.id}.txt', 'r', encoding='utf8'),
+                      caption=f'Автор питання: @{message.from_user.username}\nПитання: {help_msg}')
+    os.remove(f'{message.from_user.id}.txt')
+    bot.send_message(message.chat.id, 'Ваше питання в обробці. Незабаром Вам відповість наш оператор')
+    dbworker.clear_db(message.chat.id)
 
 
 @bot.message_handler(commands=['rules'])
 def rules(message):
+    """ Here should be rules for using the bot """
     bot.send_message(message.chat.id, 'Правила використання')
 
 
 @bot.message_handler(commands=['start'])
 def hello(message):
+    """
+        Creates string in sqlite db with using of telegram id of the user
+        Creates utility dict
+        Sends hello message
+    """
     connection = sql.connect('DATABASE.sqlite')
     q = connection.cursor()
     q.execute("INSERT INTO 'user' (id) VALUES ('%s')" % message.from_user.id)
@@ -231,6 +350,10 @@ def hello(message):
 
 @bot.message_handler(func=lambda message: message.text == 'Оформити страхування')
 def beggining(message):
+    """
+        Makes request on EWA and return the list of countries
+        Asks user which country he going to
+    """
     r = requests.get('https://web.ewa.ua/ewa/api/v10/territory/countries', headers=headers, cookies=cookies)
     markup = types.InlineKeyboardMarkup()
     button = types.InlineKeyboardButton(text='Увесь світ🌍', callback_data='273')
@@ -243,6 +366,7 @@ def beggining(message):
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_inline(call):
+    """ Handle all callbacks """
     if str(call.data) == '273':
         utility.update({str(call.message.chat.id) + 'place_code': str(call.data)})
         date_example = date_plus_day(call.message)
@@ -268,7 +392,8 @@ def callback_inline(call):
                          reply_markup=inline_calendar.get_keyboard(call.message.chat.id))
         utility.update({str(call.message.chat.id) + 'date_from_check': '1'})
     try:
-        if str(call.data.split(',')[0]) == str(utility.get(str(call.message.chat.id) + 'tariff1')[2]) and str(call.data.split(',')[1]) == str(utility.get(str(call.message.chat.id) + 'tariff1')[3]):
+        if str(call.data.split(',')[0]) == str(utility.get(str(call.message.chat.id) + 'tariff1')[2]) and str(
+                call.data.split(',')[1]) == str(utility.get(str(call.message.chat.id) + 'tariff1')[3]):
             print('Callback accepted1')
             utility.update({str(call.message.chat.id) + 'tariff_risk_amount':
                                 utility.get(str(call.message.chat.id) + 'tariff1')[6]})
@@ -279,7 +404,8 @@ def callback_inline(call):
             bot.send_message(call.message.chat.id,
                              'Гарний вибір! Зараз вам знадобиться ваш закородонний паспорт.\nНапишіть ваше ім\'я (латинськими літерами)✍')
             dbworker.set_state(call.message.chat.id, config.States.S_NAME_INPUT.value)
-        if str(call.data.split(',')[0]) == str(utility.get(str(call.message.chat.id) + 'tariff2')[2]) and str(call.data.split(',')[1]) == str(utility.get(str(call.message.chat.id) + 'tariff2')[3]):
+        if str(call.data.split(',')[0]) == str(utility.get(str(call.message.chat.id) + 'tariff2')[2]) and str(
+                call.data.split(',')[1]) == str(utility.get(str(call.message.chat.id) + 'tariff2')[3]):
             print('Callback accepted2')
             utility.update({str(call.message.chat.id) + 'tariff_risk_amount':
                                 utility.get(str(call.message.chat.id) + 'tariff2')[6]})
@@ -290,7 +416,8 @@ def callback_inline(call):
             bot.send_message(call.message.chat.id,
                              'Гарний вибір! Зараз вам знадобиться ваш закородонний паспорт.\nНапишіть ваше ім\'я (латинськими літерами)✍')
             dbworker.set_state(call.message.chat.id, config.States.S_NAME_INPUT.value)
-        if str(call.data.split(',')[0]) == str(utility.get(str(call.message.chat.id) + 'tariff3')[2]) and str(call.data.split(',')[1]) == str(utility.get(str(call.message.chat.id) + 'tariff3')[3]):
+        if str(call.data.split(',')[0]) == str(utility.get(str(call.message.chat.id) + 'tariff3')[2]) and str(
+                call.data.split(',')[1]) == str(utility.get(str(call.message.chat.id) + 'tariff3')[3]):
             print('Callback accepted3')
             utility.update({str(call.message.chat.id) + 'tariff_risk_amount':
                                 utility.get(str(call.message.chat.id) + 'tariff3')[6]})
@@ -301,7 +428,8 @@ def callback_inline(call):
             bot.send_message(call.message.chat.id,
                              'Гарний вибір! Зараз вам знадобиться ваш закородонний паспорт.\nНапишіть ваше ім\'я (латинськими літерами)✍')
             dbworker.set_state(call.message.chat.id, config.States.S_NAME_INPUT.value)
-        if str(call.data.split(',')[0]) == str(utility.get(str(call.message.chat.id) + 'tariff4')[2]) and str(call.data.split(',')[1]) == str(utility.get(str(call.message.chat.id) + 'tariff4')[3]):
+        if str(call.data.split(',')[0]) == str(utility.get(str(call.message.chat.id) + 'tariff4')[2]) and str(
+                call.data.split(',')[1]) == str(utility.get(str(call.message.chat.id) + 'tariff4')[3]):
             print('Callback accepted4')
             utility.update({str(call.message.chat.id) + 'tariff_risk_amount':
                                 utility.get(str(call.message.chat.id) + 'tariff4')[6]})
@@ -312,7 +440,8 @@ def callback_inline(call):
             bot.send_message(call.message.chat.id,
                              'Гарний вибір! Зараз вам знадобиться ваш закородонний паспорт.\nНапишіть ваше ім\'я (латинськими літерами)✍')
             dbworker.set_state(call.message.chat.id, config.States.S_NAME_INPUT.value)
-        if str(call.data.split(',')[0]) == str(utility.get(str(call.message.chat.id) + 'tariff5')[2]) and str(call.data.split(',')[1]) == str(utility.get(str(call.message.chat.id) + 'tariff5')[3]):
+        if str(call.data.split(',')[0]) == str(utility.get(str(call.message.chat.id) + 'tariff5')[2]) and str(
+                call.data.split(',')[1]) == str(utility.get(str(call.message.chat.id) + 'tariff5')[3]):
             print('Callback accepted5')
             utility.update({str(call.message.chat.id) + 'tariff_risk_amount':
                                 utility.get(str(call.message.chat.id) + 'tariff5')[6]})
@@ -330,6 +459,7 @@ def callback_inline(call):
 @bot.message_handler(
     func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S_ASKING_DATE_FROM.value)
 def asking_target(message):
+    """ Asks user purpose of trip """
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     button1 = types.KeyboardButton('Навчання🎓')
     button2 = types.KeyboardButton('Туризм📸')
@@ -349,6 +479,7 @@ def asking_target(message):
 @bot.message_handler(
     func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S_GETTING_TARGET.value)
 def getting_target(message):
+    """ Receives the purpose of trip chosen by user """
     if message.text == 'Навчання🎓':
         trip_purpose = 'study'
         utility.update({str(message.chat.id) + 'trip_purpose': trip_purpose})
@@ -386,6 +517,7 @@ def getting_target(message):
 @bot.message_handler(
     func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S_BIRTH_DATE.value)
 def birth_date(message):
+    """ Asks user his birth date """
     bot.send_message(message.chat.id,
                      'Тепер введіть свій день народження🎂 Усе у тому ж форматі РРРР-ММ-ДД.\nНаприклад 1991-09-18')
     dbworker.set_state(message.chat.id, config.States.S_GETTING_BIRTH_DATE.value)
@@ -394,6 +526,7 @@ def birth_date(message):
 @bot.message_handler(
     func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S_GETTING_BIRTH_DATE.value)
 def getting_birth_date(message):
+    """ Receives user birth date inputs it in db and shows available insurance plans """
     date_of_birth = message.text
     connection = sql.connect('DATABASE.sqlite')
     q = connection.cursor()
@@ -481,6 +614,7 @@ def getting_birth_date(message):
 @bot.message_handler(
     func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S_NAME_INPUT.value)
 def name_input(message):
+    """ Receives user name and asks user surname """
     name = message.text
     connection = sql.connect('DATABASE.sqlite')
     q = connection.cursor()
@@ -495,6 +629,7 @@ def name_input(message):
 @bot.message_handler(
     func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S_SURNAME_INPUT.value)
 def name_input(message):
+    """ Receives user surname and asks registration address """
     surname = message.text
     connection = sql.connect('DATABASE.sqlite')
     q = connection.cursor()
@@ -509,6 +644,7 @@ def name_input(message):
 @bot.message_handler(
     func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S_ADDRESS.value)
 def address_input(message):
+    """ Receives user surname and asks his phone number """
     address = message.text
     connection = sql.connect('DATABASE.sqlite')
     q = connection.cursor()
@@ -523,6 +659,7 @@ def address_input(message):
 @bot.message_handler(
     func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S_PHONE.value)
 def phone_input(message):
+    """ Receives user phone and asks user email """
     phone = message.text
     connection = sql.connect('DATABASE.sqlite')
     q = connection.cursor()
@@ -537,6 +674,7 @@ def phone_input(message):
 @bot.message_handler(
     func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S_EMAIL.value)
 def email_input(message):
+    """ Receives user email and asks user foreign passport series """
     email = message.text
     connection = sql.connect('DATABASE.sqlite')
     q = connection.cursor()
@@ -551,6 +689,7 @@ def email_input(message):
 @bot.message_handler(
     func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S_SERIES.value)
 def series_input(message):
+    """ Receives user foreign passport series and asks user foreign passport number """
     series = message.text
     connection = sql.connect('DATABASE.sqlite')
     q = connection.cursor()
@@ -568,6 +707,7 @@ def series_input(message):
 
 @bot.message_handler(func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S_NUMBER.value)
 def number_taking(message):
+    """ Receives user foreign passport number and and directs him to prefinal func """
     number = message.text
     # if len(number) != 6:
     #     bot.send_message(message.chat.id, 'Номер паспорта має містити 6 цифр. Спробуйте ще')
@@ -583,6 +723,7 @@ def number_taking(message):
 
 
 def prefinal(message):
+    """ Asks the user about the correctness of the entered data """
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     button1 = types.KeyboardButton('Так✔')
     button2 = types.KeyboardButton('Змінити✖')
@@ -645,11 +786,16 @@ def prefinal(message):
 
 @bot.message_handler(func=lambda message: message.text == 'Спочатку🔄')
 def again(message):
+    """ Directs users to begging func """
     beggining(message)
 
 
 @bot.message_handler(func=lambda message: message.text == 'Так✔')
 def yes(message):
+    """
+        Makes request on EWA to submit the contract data
+        Asks user one-time-password sent on his phone number
+    """
     connection = sql.connect('DATABASE.sqlite')
     q = connection.cursor()
     q.execute("SELECT * from user WHERE id='%s'" % message.from_user.id)
@@ -756,6 +902,10 @@ def yes(message):
 
 @bot.message_handler(func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S_OTP.value)
 def otp(message):
+    """
+        Receives one-time-password
+        Sends invoice payment
+    """
     otp = message.text
     contract = utility.get(str(message.chat.id) + 'contract_id')
     url_otp_2 = f'https://web.ewa.ua/ewa/api/v9/contract/{contract}/otp?customer={otp}'
@@ -786,14 +936,14 @@ def otp(message):
 
 @bot.pre_checkout_query_handler(func=lambda query: True)
 def process_pre_checkout_query(pre_checkout_query: types.PreCheckoutQuery):
+    """ Check something.. i don't know actually what :) """
     bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True)
 
 
 @bot.message_handler(content_types='successful_payment')
 def process_successful_payment(message: types.Message):
+    """ Makes request on EWA to sigh the contract and thanks the user for the purchase """
     print(message.successful_payment)
-    # total_amount = message.successful_payment['total_amount']  TypeError: 'SuccessfulPayment' object is not subscriptable
-    # payload = message.successful_payment['invoice_payload']
     print('Платёж прошел. Всё найс')
     contract = utility.get(str(message.chat.id) + 'contract_id')
     url_for_emi = f'https://web.ewa.ua/ewa/api/v10/contract/{contract}/state/SIGNED'
@@ -827,6 +977,7 @@ def process_successful_payment(message: types.Message):
 
 @bot.message_handler(func=lambda message: message.text == 'Змінити✖')
 def no(message):
+    """ Asks user what he want to change """
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     button1 = types.KeyboardButton('Прізвище')
     button2 = types.KeyboardButton("І'мя")

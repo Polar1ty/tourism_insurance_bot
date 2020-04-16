@@ -528,6 +528,10 @@ def getting_birth_date(message):
     json_string = json.dumps(data)
     r = requests.post('https://web.ewa.ua/ewa/api/v10/tariff/choose/tourism', headers=headers, cookies=cookies,
                       data=json_string)
+    print(r.json())
+    if r.json() == []:
+        bot.send_message(message.chat.id, 'Не знайдено тарифів по заданим критеріям')
+        beggining(message)
     try:
         tariff1 = tariff_parsing(r.json()[0])
         tariff2 = tariff_parsing(r.json()[1])
@@ -647,7 +651,7 @@ def email_input(message):
     connection.commit()
     q.close()
     connection.close()
-    bot.send_message(message.chat.id, 'Тепер введіть серію вашого закордонника✍')
+    bot.send_message(message.chat.id, 'Тепер введіть серію вашого закордонника(2 символи)✍')
     dbworker.set_state(message.chat.id, config.States.S_SERIES.value)
 
 
@@ -666,7 +670,7 @@ def series_input(message):
     connection.commit()
     q.close()
     connection.close()
-    bot.send_message(message.chat.id, 'Введіть номер закордонного паспорта✍')
+    bot.send_message(message.chat.id, 'Введіть номер закордонного паспорта(6 символів)✍')
     dbworker.set_state(message.chat.id, config.States.S_NUMBER.value)
 
 
@@ -674,17 +678,17 @@ def series_input(message):
 def number_taking(message):
     """ Receives user foreign passport number and and directs him to prefinal func """
     number = message.text
-    # if len(number) != 6:
-    #     bot.send_message(message.chat.id, 'Номер паспорта має містити 6 цифр. Спробуйте ще')
-    #     dbworker.set_state(message.chat.id, config.States.S_NUMBER.value)
-    # else:
-    connection = sql.connect('DATABASE.sqlite')
-    q = connection.cursor()
-    q.execute("UPDATE passport SET number='%s' WHERE id='%s'" % (number, message.from_user.id))
-    connection.commit()
-    q.close()
-    connection.close()
-    prefinal(message)
+    if len(number) != 6:
+        bot.send_message(message.chat.id, 'Номер закордонного паспорта має містити 6 цифр. Спробуйте ще')
+        dbworker.set_state(message.chat.id, config.States.S_NUMBER.value)
+    else:
+        connection = sql.connect('DATABASE.sqlite')
+        q = connection.cursor()
+        q.execute("UPDATE passport SET number='%s' WHERE id='%s'" % (number, message.from_user.id))
+        connection.commit()
+        q.close()
+        connection.close()
+        prefinal(message)
 
 
 def prefinal(message):
@@ -1112,7 +1116,7 @@ def number_taking_again(message):
 if __name__ == '__main__':
     bot.polling(none_stop=True)
 
-# TODO: Блок на серию и номер загран паспорта
+# TODO: Добавить обработку пустого списка тарифов
 # TODO: Блок если юзер выбрал сегодняшнюю дату
 # TODO: Перенести блок с запоминанием юзера после выбора тарифа
 

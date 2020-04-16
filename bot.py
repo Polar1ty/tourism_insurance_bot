@@ -225,55 +225,27 @@ def getting_help_msg(message):
     q.close()
     connection.close()
     try:
-        model = results[0][1]
-    except IndexError:
-        model = ''
-    try:
-        VIN = results[0][2]
-    except IndexError:
-        VIN = ''
-    try:
-        reg_number = results[0][3]
-    except IndexError:
-        reg_number = ''
-    try:
-        category = results[0][4]
-    except IndexError:
-        category = ''
-    try:
-        year_car = results[0][5]
-    except IndexError:
-        year_car = ''
-    try:
-        surname = results[0][6]
+        surname = results[0][1]
     except IndexError:
         surname = ''
     try:
-        name = results[0][7]
+        name = results[0][2]
     except IndexError:
         name = ''
     try:
-        patronymic = results[0][8]
-    except IndexError:
-        patronymic = ''
-    try:
-        birth = results[0][9]
+        birth = results[0][3]
     except IndexError:
         birth = ''
     try:
-        reg_addres = results[0][10]
+        reg_addres = results[0][4]
     except IndexError:
         reg_addres = ''
     try:
-        INN = results[0][11]
-    except IndexError:
-        INN = ''
-    try:
-        email = results[0][12]
+        email = results[0][5]
     except IndexError:
         email = ''
     try:
-        phone = results[0][13]
+        phone = results[0][6]
     except IndexError:
         phone = ''
     try:
@@ -284,22 +256,15 @@ def getting_help_msg(message):
         doc_num = results1[0][2]
     except IndexError:
         doc_num = ''
-    try:
-        date = results1[0][3]
-    except IndexError:
-        date = ''
-    try:
-        organ = results1[0][4]
-    except IndexError:
-        organ = ''
-    with open(f'{message.from_user.id}.txt', 'a', encoding='utf8') as f:
-        f.write(
-            f"# -*- coding: utf8 -*-\n\n\nДані автомобіля🚘\n\nМодель:  {model}\nVIN-код:  {VIN}\nРеєстраційний номер:  {reg_number}\nКатегорія:  {category}\nРік випуску:  {year_car}\n\nВаша особиста інформація😉\n\nПрізвище:  {surname}\nІм'я:  {name}\nПо-батькові:  {patronymic}\nДата народждения:  {birth}\nАдреса реєстрації:  {reg_addres}\nІНПП:  {INN}\nEMAIL:  {email}\nТелефон:  {phone}\n\nДані вашого документа📖\n\nТип документа: {doc_type}\nСерія/Запис документа:  {series}\nНомер документа:  {doc_num}\nДата видачі:  {date}\nОрган, що видав:  {organ}")
-        time.sleep(1)
-    bot.send_document(config.help_chat_id, open(f'{message.from_user.id}.txt', 'r', encoding='utf8'),
-                      caption=f'Автор питання: @{message.from_user.username}\nПитання: {help_msg}')
-    os.remove(f'{message.from_user.id}.txt')
-    bot.send_message(message.chat.id, 'Ваше питання в обробці. Незабаром Вам відповість наш оператор')
+    if str(utility.get(str(message.chat.id) + 'place_code')) == '273':
+        place = 'Увесь світ🌍'
+    else:
+        place = 'Європа🇪🇺'
+    coverage = str((datetime.datetime.strptime(str(utility.get(str(message.chat.id) + 'date_to')),
+                                               '%Y-%m-%d').date() - datetime.datetime.strptime(
+        str(utility.get(str(message.chat.id) + 'date_from')), '%Y-%m-%d').date()).days)
+    bot.send_message(message.chat.id,
+                     f"# -*- coding: utf8 -*-\n\n\nДані про подорож✈\n\nМісце:  {place}\nДата виліту: {utility.get(str(message.chat.id) + 'date_from')}\nДата повернення:{utility.get(str(message.chat.id) + 'date_to')}\nКількість дней покриття: {coverage}\nЦіль поїздки: {utility.get(str(message.chat.id) + 'trip_purpose')}\n\nВаша особиста інформація😉\n\nПрізвище:  {surname}\nІм'я:  {name}\nДата народждения:  {birth}\nАдреса реєстрації:  {reg_addres}\nEMAIL:  {email}\nТелефон:  {phone}\n\nДані вашого документа📖\n\nСерія/Запис документа:  {series}\nНомер документа:  {doc_num}")
     dbworker.clear_db(message.chat.id)
 
 
@@ -1124,7 +1089,6 @@ def series_taking_again(message):
     connection.close()
     prefinal(message)
 
-
 @bot.message_handler(func=lambda message: message.text == 'Номер документа')
 def number_set(message):
     bot.send_message(message.chat.id, 'Введіть ваш номер документа:✍')
@@ -1147,3 +1111,9 @@ def number_taking_again(message):
 # BOT RUNNING
 if __name__ == '__main__':
     bot.polling(none_stop=True)
+
+# TODO: Блок на серию и номер загран паспорта
+# TODO: Блок если юзер выбрал сегодняшнюю дату
+# TODO: Перенести блок с запоминанием юзера после выбора тарифа
+
+# TODO: Добавить фидбек со звездочками после оплаты

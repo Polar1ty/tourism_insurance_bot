@@ -83,6 +83,37 @@ def log(message):
                                                           str(message.from_user.id), message.text))
 
 
+def remember(message):
+    bot.send_message(message.chat.id,
+                         'Я пам\'ятаю вас! Якщо все вірно натисніть - Так✅\n Якщо треба змінити особисту інформацію або ж паспортні дані натисніть - Змінити❎\nЩоб змінити транспортний засіб, або тариф. Натисніть - Спочатку🔄')
+    utility = {
+            str(message.chat.id) + 'city1': '',
+            str(message.chat.id) + 'city2': '',
+            str(message.chat.id) + 'city3': '',
+            str(message.chat.id) + 'city4': '',
+            str(message.chat.id) + 'final_city_id': '',
+            str(message.chat.id) + 'tariff1': '',
+            str(message.chat.id) + 'tariff2': '',
+            str(message.chat.id) + 'tariff3': '',
+            str(message.chat.id) + 'tariff4': '',
+            str(message.chat.id) + 'tariff5': '',
+            str(message.chat.id) + 'tariff6': '',
+            str(message.chat.id) + 'tariff7': '',
+            str(message.chat.id) + 'tariff8': '',
+            str(message.chat.id) + 'tariff_type': '',
+            str(message.chat.id) + 'tariff_id': '',
+            str(message.chat.id) + 'tariff_payment': '',
+            str(message.chat.id) + 'tariff_discounted_payment': '',
+            str(message.chat.id) + 'tariff_name': '',
+            str(message.chat.id) + 'doc_type': '',
+            str(message.chat.id) + 'contract_id': '',
+            str(message.chat.id) + 'min_bonus_malus': '',
+            str(message.chat.id) + 'car_year': '',
+            str(message.chat.id) + 'order': ''
+    }
+    prefinal(message)
+
+
 def tariff_parsing(tariff):
     """ This func parses each tariff on necessary information """
     name = tariff['tariff']['name']
@@ -133,6 +164,10 @@ def calendar_callback_handler(q: types.CallbackQuery):
         bot.answer_callback_query(q.id)
         try:
             return_data = inline_calendar.handler_callback(q.from_user.id, q.data)
+            # if str(return_data).strip() == str(datetime.date.today()).strip():
+            #     print('Im work!!!')
+            #     bot.edit_message_text(text='Дата виліту не може бути сьогодні', chat_id=q.from_user.id, message_id=q.message.message_id,
+            #                           reply_markup=inline_calendar.get_keyboard(q.from_user.id))
             if return_data is None:
                 bot.edit_message_reply_markup(chat_id=q.from_user.id, message_id=q.message.message_id,
                                               reply_markup=inline_calendar.get_keyboard(q.from_user.id))
@@ -202,7 +237,7 @@ def reset(message):
 
 @bot.message_handler(commands=['help'])
 def help(message):
-    """ Here should be some support info """
+    """ Directs user into getting help msg func """
     bot.send_message(message.chat.id, 'Напишіть ваше питання, воно буде надіслане до оператора служби підтримки.')
     dbworker.set_state(message.chat.id, config.States.S_HELP.value)
 
@@ -210,11 +245,8 @@ def help(message):
 @bot.message_handler(
     func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S_HELP.value)
 def getting_help_msg(message):
+    """ Sends user question into support chat """
     help_msg = message.text
-    try:
-        doc_type = utility.get(str(message.chat.id) + 'doc_type')
-    except KeyError:
-        doc_type = ' '
     connection = sql.connect('DATABASE.sqlite')
     q = connection.cursor()
     q.execute("SELECT * from user WHERE id='%s'" % message.from_user.id)
@@ -260,11 +292,19 @@ def getting_help_msg(message):
         place = 'Увесь світ🌍'
     else:
         place = 'Європа🇪🇺'
-    coverage = str((datetime.datetime.strptime(str(utility.get(str(message.chat.id) + 'date_to')),
+    try:
+        coverage = str((datetime.datetime.strptime(str(utility.get(str(message.chat.id) + 'date_to')),
                                                '%Y-%m-%d').date() - datetime.datetime.strptime(
         str(utility.get(str(message.chat.id) + 'date_from')), '%Y-%m-%d').date()).days)
-    bot.send_message(message.chat.id,
-                     f"# -*- coding: utf8 -*-\n\n\nДані про подорож✈\n\nМісце:  {place}\nДата виліту: {utility.get(str(message.chat.id) + 'date_from')}\nДата повернення:{utility.get(str(message.chat.id) + 'date_to')}\nКількість дней покриття: {coverage}\nЦіль поїздки: {utility.get(str(message.chat.id) + 'trip_purpose')}\n\nВаша особиста інформація😉\n\nПрізвище:  {surname}\nІм'я:  {name}\nДата народждения:  {birth}\nАдреса реєстрації:  {reg_addres}\nEMAIL:  {email}\nТелефон:  {phone}\n\nДані вашого документа📖\n\nСерія/Запис документа:  {series}\nНомер документа:  {doc_num}")
+    except ValueError:
+        coverage = ''
+    with open(f'{message.from_user.id}.txt', 'a', encoding='utf8') as f:
+        f.write(
+            f"# -*- coding: utf8 -*-\n\nДані про подорож✈\n\nМісце:  {place}\nДата виліту: {utility.get(str(message.chat.id) + 'date_from')}\nДата повернення:{utility.get(str(message.chat.id) + 'date_to')}\nКількість дней покриття: {coverage}\nЦіль поїздки: {utility.get(str(message.chat.id) + 'trip_purpose')}\n\nВаша особиста інформація😉\n\nПрізвище:  {surname}\nІм'я:  {name}\nДата народждения:  {birth}\nАдреса реєстрації:  {reg_addres}\nEMAIL:  {email}\nТелефон:  {phone}\n\nДані вашого документа📖\n\nСерія/Запис документа:  {series}\nНомер документа:  {doc_num}")
+    bot.send_document(config.help_chat_id, open(f'{message.from_user.id}.txt', 'r', encoding='utf8'),
+                      caption=f'Автор питання: @{message.from_user.username}\nПитання: {help_msg}')
+    os.remove(f'{message.from_user.id}.txt')
+    bot.send_message(message.chat.id, 'Ваше питання в обробці. Незабаром Вам відповість наш оператор')
     dbworker.clear_db(message.chat.id)
 
 
@@ -334,9 +374,8 @@ def callback_inline(call):
     """ Handle all callbacks """
     if str(call.data) == '273':
         utility.update({str(call.message.chat.id) + 'place_code': str(call.data)})
-        date_example = date_plus_day(call.message)
         bot.send_message(call.message.chat.id,
-                         f'Добре! Теперь скажіть будь ласка дату виліту🖊 Дата повинна бути у форматі {date_example[0]}')
+                         f'Добре! Теперь скажіть будь ласка дату виліту(не може бути сьогоднішнью)')
         inline_calendar.init(call.message.chat.id,
                              datetime.date.today(),
                              datetime.date.today(),
@@ -346,9 +385,8 @@ def callback_inline(call):
         utility.update({str(call.message.chat.id) + 'date_from_check': '1'})
     if str(call.data) == '272':
         utility.update({str(call.message.chat.id) + 'place_code': str(call.data)})
-        date_example = date_plus_day(call.message)
         bot.send_message(call.message.chat.id,
-                         f'Добре! Теперь скажіть будь ласка дату виліту🖊 Дата повинна бути у форматі {date_example[0]}')
+                         f'Добре! Теперь скажіть будь ласка дату виліту🖊')
         inline_calendar.init(call.message.chat.id,
                              datetime.date.today(),
                              datetime.date.today(),
@@ -366,9 +404,23 @@ def callback_inline(call):
                 {str(call.message.chat.id) + 'tariff_payment': utility.get(str(call.message.chat.id) + 'tariff1')[3]})
             utility.update(
                 {str(call.message.chat.id) + 'tariff_name': utility.get(str(call.message.chat.id) + 'tariff1')[1]})
-            bot.send_message(call.message.chat.id,
-                             'Гарний вибір! Зараз вам знадобиться ваш закородонний паспорт.\nНапишіть ваше ім\'я (латинськими літерами)✍')
-            dbworker.set_state(call.message.chat.id, config.States.S_NAME_INPUT.value)
+            try:
+                connection = sql.connect('DATABASE.sqlite')
+                q = connection.cursor()
+                q.execute("SELECT * from passport WHERE id='%s'" % call.message.from_user.id)
+                results1 = q.fetchall()
+                doc_num = results1[0][2]
+                connection.commit()
+                q.close()
+                connection.close()
+            except:
+                doc_num = ''
+            if doc_num == '':
+                bot.send_message(call.message.chat.id,
+                                 'Гарний вибір! Зараз вам знадобиться ваш закородонний паспорт.\nНапишіть ваше ім\'я (латинськими літерами)✍')
+                dbworker.set_state(call.message.chat.id, config.States.S_NAME_INPUT.value)
+            else:
+                remember(call.message)
         if str(call.data.split(',')[0]) == str(utility.get(str(call.message.chat.id) + 'tariff2')[2]) and str(
                 call.data.split(',')[1]) == str(utility.get(str(call.message.chat.id) + 'tariff2')[3]):
             print('Callback accepted2')
@@ -378,9 +430,23 @@ def callback_inline(call):
                 {str(call.message.chat.id) + 'tariff_payment': utility.get(str(call.message.chat.id) + 'tariff2')[3]})
             utility.update(
                 {str(call.message.chat.id) + 'tariff_name': utility.get(str(call.message.chat.id) + 'tariff2')[1]})
-            bot.send_message(call.message.chat.id,
-                             'Гарний вибір! Зараз вам знадобиться ваш закородонний паспорт.\nНапишіть ваше ім\'я (латинськими літерами)✍')
-            dbworker.set_state(call.message.chat.id, config.States.S_NAME_INPUT.value)
+            try:
+                connection = sql.connect('DATABASE.sqlite')
+                q = connection.cursor()
+                q.execute("SELECT * from passport WHERE id='%s'" % call.message.from_user.id)
+                results1 = q.fetchall()
+                doc_num = results1[0][2]
+                connection.commit()
+                q.close()
+                connection.close()
+            except:
+                doc_num = ''
+            if doc_num == '':
+                bot.send_message(call.message.chat.id,
+                                 'Гарний вибір! Зараз вам знадобиться ваш закородонний паспорт.\nНапишіть ваше ім\'я (латинськими літерами)✍')
+                dbworker.set_state(call.message.chat.id, config.States.S_NAME_INPUT.value)
+            else:
+                remember(call.message)
         if str(call.data.split(',')[0]) == str(utility.get(str(call.message.chat.id) + 'tariff3')[2]) and str(
                 call.data.split(',')[1]) == str(utility.get(str(call.message.chat.id) + 'tariff3')[3]):
             print('Callback accepted3')
@@ -390,9 +456,23 @@ def callback_inline(call):
                 {str(call.message.chat.id) + 'tariff_payment': utility.get(str(call.message.chat.id) + 'tariff3')[3]})
             utility.update(
                 {str(call.message.chat.id) + 'tariff_name': utility.get(str(call.message.chat.id) + 'tariff3')[1]})
-            bot.send_message(call.message.chat.id,
-                             'Гарний вибір! Зараз вам знадобиться ваш закородонний паспорт.\nНапишіть ваше ім\'я (латинськими літерами)✍')
-            dbworker.set_state(call.message.chat.id, config.States.S_NAME_INPUT.value)
+            try:
+                connection = sql.connect('DATABASE.sqlite')
+                q = connection.cursor()
+                q.execute("SELECT * from passport WHERE id='%s'" % call.message.from_user.id)
+                results1 = q.fetchall()
+                doc_num = results1[0][2]
+                connection.commit()
+                q.close()
+                connection.close()
+            except:
+                doc_num = ''
+            if doc_num == '':
+                bot.send_message(call.message.chat.id,
+                                 'Гарний вибір! Зараз вам знадобиться ваш закородонний паспорт.\nНапишіть ваше ім\'я (латинськими літерами)✍')
+                dbworker.set_state(call.message.chat.id, config.States.S_NAME_INPUT.value)
+            else:
+                remember(call.message)
         if str(call.data.split(',')[0]) == str(utility.get(str(call.message.chat.id) + 'tariff4')[2]) and str(
                 call.data.split(',')[1]) == str(utility.get(str(call.message.chat.id) + 'tariff4')[3]):
             print('Callback accepted4')
@@ -402,9 +482,23 @@ def callback_inline(call):
                 {str(call.message.chat.id) + 'tariff_payment': utility.get(str(call.message.chat.id) + 'tariff4')[3]})
             utility.update(
                 {str(call.message.chat.id) + 'tariff_name': utility.get(str(call.message.chat.id) + 'tariff4')[1]})
-            bot.send_message(call.message.chat.id,
-                             'Гарний вибір! Зараз вам знадобиться ваш закородонний паспорт.\nНапишіть ваше ім\'я (латинськими літерами)✍')
-            dbworker.set_state(call.message.chat.id, config.States.S_NAME_INPUT.value)
+            try:
+                connection = sql.connect('DATABASE.sqlite')
+                q = connection.cursor()
+                q.execute("SELECT * from passport WHERE id='%s'" % call.message.from_user.id)
+                results1 = q.fetchall()
+                doc_num = results1[0][2]
+                connection.commit()
+                q.close()
+                connection.close()
+            except:
+                doc_num = ''
+            if doc_num == '':
+                bot.send_message(call.message.chat.id,
+                                 'Гарний вибір! Зараз вам знадобиться ваш закородонний паспорт.\nНапишіть ваше ім\'я (латинськими літерами)✍')
+                dbworker.set_state(call.message.chat.id, config.States.S_NAME_INPUT.value)
+            else:
+                remember(call.message)
         if str(call.data.split(',')[0]) == str(utility.get(str(call.message.chat.id) + 'tariff5')[2]) and str(
                 call.data.split(',')[1]) == str(utility.get(str(call.message.chat.id) + 'tariff5')[3]):
             print('Callback accepted5')
@@ -414,9 +508,23 @@ def callback_inline(call):
                 {str(call.message.chat.id) + 'tariff_payment': utility.get(str(call.message.chat.id) + 'tariff5')[3]})
             utility.update(
                 {str(call.message.chat.id) + 'tariff_name': utility.get(str(call.message.chat.id) + 'tariff5')[1]})
-            bot.send_message(call.message.chat.id,
-                             'Гарний вибір! Зараз вам знадобиться ваш закородонний паспорт.\nНапишіть ваше ім\'я (латинськими літерами)✍')
-            dbworker.set_state(call.message.chat.id, config.States.S_NAME_INPUT.value)
+            try:
+                connection = sql.connect('DATABASE.sqlite')
+                q = connection.cursor()
+                q.execute("SELECT * from passport WHERE id='%s'" % call.message.from_user.id)
+                results1 = q.fetchall()
+                doc_num = results1[0][2]
+                connection.commit()
+                q.close()
+                connection.close()
+            except:
+                doc_num = ''
+            if doc_num == '':
+                bot.send_message(call.message.chat.id,
+                                 'Гарний вибір! Зараз вам знадобиться ваш закородонний паспорт.\nНапишіть ваше ім\'я (латинськими літерами)✍')
+                dbworker.set_state(call.message.chat.id, config.States.S_NAME_INPUT.value)
+            else:
+                remember(call.message)
     except TypeError:
         pass
 
@@ -506,7 +614,6 @@ def getting_birth_date(message):
     connection.commit()
     q.close()
     connection.close()
-    bot.send_message(message.chat.id, 'Відмінно! Ось доступні вам тарифи🔽')
     data = {
         'multivisa': 'false',
         'coverageFrom': str(utility.get(str(message.chat.id) + 'date_from')),
@@ -528,56 +635,77 @@ def getting_birth_date(message):
     json_string = json.dumps(data)
     r = requests.post('https://web.ewa.ua/ewa/api/v10/tariff/choose/tourism', headers=headers, cookies=cookies,
                       data=json_string)
-    print(r.json())
     if r.json() == []:
         bot.send_message(message.chat.id, 'Не знайдено тарифів по заданим критеріям')
+        try:
+            utility.pop(str(message.chat.id) + 'place_code')
+            utility.pop(str(message.chat.id) + 'date_from')
+            utility.pop(str(message.chat.id) + 'date_from_check')
+            utility.pop(str(message.chat.id) + 'date_to')
+            utility.pop(str(message.chat.id) + 'date_to_check')
+            utility.pop(str(message.chat.id) + 'trip_purpose')
+            utility.pop(str(message.chat.id) + 'tariff1')
+            utility.pop(str(message.chat.id) + 'tariff2')
+            utility.pop(str(message.chat.id) + 'tariff3')
+            utility.pop(str(message.chat.id) + 'tariff4')
+            utility.pop(str(message.chat.id) + 'tariff5')
+            utility.pop(str(message.chat.id) + 'tariff_risk_amount')
+            utility.pop(str(message.chat.id) + 'tariff_name')
+            utility.pop(str(message.chat.id) + 'contract_id')
+            utility.pop(str(message.chat.id) + 'tariff_payment')
+            utility.pop(str(message.chat.id) + 'tariff_discounted_payment')
+            utility.pop(str(message.chat.id) + 'order')
+        except KeyError:
+            pass
         beggining(message)
-    try:
-        tariff1 = tariff_parsing(r.json()[0])
-        tariff2 = tariff_parsing(r.json()[1])
-        tariff3 = tariff_parsing(r.json()[2])
-        tariff4 = tariff_parsing(r.json()[3])
-        tariff5 = tariff_parsing(r.json()[4])
-    except IndexError:
-        pass
-    try:
-        utility.update({str(message.chat.id) + 'tariff1': tariff1})
-        utility.update({str(message.chat.id) + 'tariff2': tariff2})
-        utility.update({str(message.chat.id) + 'tariff3': tariff3})
-        utility.update({str(message.chat.id) + 'tariff4': tariff4})
-        utility.update({str(message.chat.id) + 'tariff5': tariff5})
-    except:
-        pass
-    try:
-        bot.send_message(message.chat.id,
-                         f'👔 Страховик: {utility.get(str(message.chat.id) + "tariff5")[0]}\n💼 Назва: {utility.get(str(message.chat.id) + "tariff5")[1]}\n💵 Вартість: {utility.get(str(message.chat.id) + "tariff5")[3]}',
-                         reply_markup=utility.get(str(message.chat.id) + "tariff5")[5])
-    except TypeError:
-        pass
-    try:
-        bot.send_message(message.chat.id,
-                         f'👔 Страховик: {utility.get(str(message.chat.id) + "tariff4")[0]}\n💼 Назва: {utility.get(str(message.chat.id) + "tariff4")[1]}\n💵 Вартість: {utility.get(str(message.chat.id) + "tariff4")[3]}',
-                         reply_markup=utility.get(str(message.chat.id) + "tariff4")[5])
-    except TypeError:
-        pass
-    try:
-        bot.send_message(message.chat.id,
-                         f'👔 Страховик: {utility.get(str(message.chat.id) + "tariff3")[0]}\n💼 Назва: {utility.get(str(message.chat.id) + "tariff3")[1]}\n💵 Вартість: {utility.get(str(message.chat.id) + "tariff3")[3]}',
-                         reply_markup=utility.get(str(message.chat.id) + "tariff3")[5])
-    except TypeError:
-        pass
-    try:
-        bot.send_message(message.chat.id,
-                         f'👔 Страховик: {utility.get(str(message.chat.id) + "tariff2")[0]}\n💼 Назва: {utility.get(str(message.chat.id) + "tariff2")[1]}\n💵 Вартість: {utility.get(str(message.chat.id) + "tariff2")[3]}',
-                         reply_markup=utility.get(str(message.chat.id) + "tariff2")[5])
-    except TypeError:
-        pass
-    try:
-        bot.send_message(message.chat.id,
-                         f'👔Страховик: {utility.get(str(message.chat.id) + "tariff1")[0]}\n💼 Назва: {utility.get(str(message.chat.id) + "tariff1")[1]}\n💵 Вартість: {utility.get(str(message.chat.id) + "tariff1")[3]}',
-                         reply_markup=utility.get(str(message.chat.id) + "tariff1")[5])
-    except TypeError:
-        pass
+    else:
+        bot.send_message(message.chat.id, 'Відмінно! Ось доступні вам тарифи🔽')
+        try:
+            tariff1 = tariff_parsing(r.json()[0])
+            tariff2 = tariff_parsing(r.json()[1])
+            tariff3 = tariff_parsing(r.json()[2])
+            tariff4 = tariff_parsing(r.json()[3])
+            tariff5 = tariff_parsing(r.json()[4])
+        except IndexError:
+            pass
+        try:
+            utility.update({str(message.chat.id) + 'tariff1': tariff1})
+            utility.update({str(message.chat.id) + 'tariff2': tariff2})
+            utility.update({str(message.chat.id) + 'tariff3': tariff3})
+            utility.update({str(message.chat.id) + 'tariff4': tariff4})
+            utility.update({str(message.chat.id) + 'tariff5': tariff5})
+        except:
+            pass
+        try:
+            bot.send_message(message.chat.id,
+                             f'👔 Страховик: {utility.get(str(message.chat.id) + "tariff5")[0]}\n💼 Назва: {utility.get(str(message.chat.id) + "tariff5")[1]}\n💵 Вартість: {utility.get(str(message.chat.id) + "tariff5")[3]}',
+                             reply_markup=utility.get(str(message.chat.id) + "tariff5")[5])
+        except TypeError:
+            pass
+        try:
+            bot.send_message(message.chat.id,
+                             f'👔 Страховик: {utility.get(str(message.chat.id) + "tariff4")[0]}\n💼 Назва: {utility.get(str(message.chat.id) + "tariff4")[1]}\n💵 Вартість: {utility.get(str(message.chat.id) + "tariff4")[3]}',
+                             reply_markup=utility.get(str(message.chat.id) + "tariff4")[5])
+        except TypeError:
+            pass
+        try:
+            bot.send_message(message.chat.id,
+                             f'👔 Страховик: {utility.get(str(message.chat.id) + "tariff3")[0]}\n💼 Назва: {utility.get(str(message.chat.id) + "tariff3")[1]}\n💵 Вартість: {utility.get(str(message.chat.id) + "tariff3")[3]}',
+                             reply_markup=utility.get(str(message.chat.id) + "tariff3")[5])
+        except TypeError:
+            pass
+        try:
+            bot.send_message(message.chat.id,
+                             f'👔 Страховик: {utility.get(str(message.chat.id) + "tariff2")[0]}\n💼 Назва: {utility.get(str(message.chat.id) + "tariff2")[1]}\n💵 Вартість: {utility.get(str(message.chat.id) + "tariff2")[3]}',
+                             reply_markup=utility.get(str(message.chat.id) + "tariff2")[5])
+        except TypeError:
+            pass
+        try:
+            bot.send_message(message.chat.id,
+                             f'👔Страховик: {utility.get(str(message.chat.id) + "tariff1")[0]}\n💼 Назва: {utility.get(str(message.chat.id) + "tariff1")[1]}\n💵 Вартість: {utility.get(str(message.chat.id) + "tariff1")[3]}',
+                             reply_markup=utility.get(str(message.chat.id) + "tariff1")[5])
+        except TypeError:
+            pass
 
 
 @bot.message_handler(
@@ -744,9 +872,12 @@ def prefinal(message):
         place = 'Увесь світ🌍'
     else:
         place = 'Європа🇪🇺'
-    coverage = str((datetime.datetime.strptime(str(utility.get(str(message.chat.id) + 'date_to')),
-                                               '%Y-%m-%d').date() - datetime.datetime.strptime(
-        str(utility.get(str(message.chat.id) + 'date_from')), '%Y-%m-%d').date()).days)
+    try:
+        coverage = str((datetime.datetime.strptime(str(utility.get(str(message.chat.id) + 'date_to')),
+                                                   '%Y-%m-%d').date() - datetime.datetime.strptime(
+            str(utility.get(str(message.chat.id) + 'date_from')), '%Y-%m-%d').date()).days)
+    except ValueError:
+        coverage = ''
     bot.send_message(message.chat.id,
                      f"Дані про подорож✈\n\nМісце:  {place}\nДата виліту: {utility.get(str(message.chat.id) + 'date_from')}\nДата повернення:{utility.get(str(message.chat.id) + 'date_to')}\nКількість дней покриття: {coverage}\nЦіль поїздки: {utility.get(str(message.chat.id) + 'trip_purpose')}\n\nВаша особиста інформація😉\n\nПрізвище:  {surname}\nІм'я:  {name}\nДата народждения:  {birth}\nАдреса реєстрації:  {reg_addres}\nEMAIL:  {email}\nТелефон:  {phone}\n\nДані вашого документа📖\n\nСерія/Запис документа:  {series}\nНомер документа:  {doc_num}",
                      reply_markup=markup)
@@ -1116,8 +1247,5 @@ def number_taking_again(message):
 if __name__ == '__main__':
     bot.polling(none_stop=True)
 
-# TODO: Добавить обработку пустого списка тарифов
-# TODO: Блок если юзер выбрал сегодняшнюю дату
-# TODO: Перенести блок с запоминанием юзера после выбора тарифа
 
 # TODO: Добавить фидбек со звездочками после оплаты

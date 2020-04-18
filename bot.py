@@ -76,7 +76,7 @@ utility = {}
 
 def log(message):
     """ Logging user messages """
-    print("<!------!>")
+    print("<!--------------------------------!>")
     print(datetime.datetime.now())
     print("Сообщение от {0} {1} (id = {2}) \n {3}".format(message.from_user.first_name,
                                                           message.from_user.last_name,
@@ -85,7 +85,7 @@ def log(message):
 
 def remember(message):
     bot.send_message(message.chat.id,
-                         'Я пам\'ятаю вас! Якщо все вірно натисніть - Так✅\n Якщо треба змінити особисту інформацію або ж паспортні дані натисніть - Змінити❎\nЩоб змінити транспортний засіб, або тариф. Натисніть - Спочатку🔄')
+                         'Я пам\'ятаю вас! Якщо все вірно натисніть - Так✅\n Якщо треба змінити особисту інформацію або ж паспортні дані натисніть - Змінити❎\nЩоб змінити дані про подорож, або тариф. Натисніть - Спочатку🔄')
     utility = {
             str(message.chat.id) + 'city1': '',
             str(message.chat.id) + 'city2': '',
@@ -321,6 +321,8 @@ def hello(message):
         Creates utility dict
         Sends hello message
     """
+    bot.send_chat_action(message.chat.id, action='typing')
+    time.sleep(1)
     connection = sql.connect('DATABASE.sqlite')
     q = connection.cursor()
     q.execute("INSERT INTO 'user' (id) VALUES ('%s')" % message.from_user.id)
@@ -659,6 +661,8 @@ def getting_birth_date(message):
             pass
         beggining(message)
     else:
+        bot.send_chat_action(message.chat.id, action='typing')
+        time.sleep(1.5)
         bot.send_message(message.chat.id, 'Відмінно! Ось доступні вам тарифи🔽')
         try:
             tariff1 = tariff_parsing(r.json()[0])
@@ -821,6 +825,8 @@ def number_taking(message):
 
 def prefinal(message):
     """ Asks the user about the correctness of the entered data """
+    bot.send_chat_action(message.chat.id, action='typing')
+    time.sleep(1.5)
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     button1 = types.KeyboardButton('Так✔')
     button2 = types.KeyboardButton('Змінити✖')

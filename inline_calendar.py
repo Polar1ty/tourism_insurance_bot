@@ -2,6 +2,7 @@
     Class for creating inline calendar
     Designed as a module for following singleton pattern
     Works with PyTelegramBotApi https://github.com/eternnoir/pyTelegramBotAPI
+    Made by https://github.com/ArFowl
 """
 import datetime
 import logging

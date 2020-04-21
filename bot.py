@@ -186,6 +186,9 @@ def calendar_callback_handler(q: types.CallbackQuery):
                                  reply_markup=inline_calendar.get_keyboard(q.from_user.id))
                 utility.update({str(q.from_user.id) + 'date_to_check': '1'})
                 utility.update({str(q.from_user.id) + 'date_from_check': '0'})
+                print(q.data)
+                q.data = 'inline_calendar_wrong_choice'
+                print(q.data)
         except inline_calendar.WrongChoiceCallbackException:
             bot.edit_message_text(text='Неправильний вибір', chat_id=q.from_user.id, message_id=q.message.message_id,
                                   reply_markup=inline_calendar.get_keyboard(q.from_user.id))
@@ -203,7 +206,6 @@ def calendar_callback_handler(q: types.CallbackQuery):
                 bot.edit_message_text(text=picked_data, chat_id=q.from_user.id, message_id=q.message.message_id,
                                       reply_markup=inline_calendar.get_keyboard(q.from_user.id))
                 asking_target(q)
-
         except inline_calendar.WrongChoiceCallbackException:
             bot.edit_message_text(text='Неправильний вибір', chat_id=q.from_user.id, message_id=q.message.message_id,
                                   reply_markup=inline_calendar.get_keyboard(q.from_user.id))
@@ -1254,4 +1256,5 @@ if __name__ == '__main__':
     bot.polling(none_stop=True)
 
 
+# TODO: Добавить кнопки сам/с семьей
 # TODO: Добавить фидбек со звездочками после оплаты

@@ -173,7 +173,6 @@ def calendar_callback_handler(q: types.CallbackQuery):
                                               reply_markup=inline_calendar.get_keyboard(q.from_user.id))
             else:
                 picked_data = return_data
-                print(picked_data)
                 bot.edit_message_text(text=picked_data, chat_id=q.from_user.id, message_id=q.message.message_id,
                                       reply_markup=inline_calendar.get_keyboard(q.from_user.id))
                 utility.update({str(q.from_user.id) + 'date_from': picked_data})
@@ -186,11 +185,9 @@ def calendar_callback_handler(q: types.CallbackQuery):
                                  reply_markup=inline_calendar.get_keyboard(q.from_user.id))
                 utility.update({str(q.from_user.id) + 'date_to_check': '1'})
                 utility.update({str(q.from_user.id) + 'date_from_check': '0'})
-                print(q.data)
                 q.data = 'inline_calendar_wrong_choice'
-                print(q.data)
         except inline_calendar.WrongChoiceCallbackException:
-            bot.edit_message_text(text='Неправильний вибір', chat_id=q.from_user.id, message_id=q.message.message_id,
+            bot.edit_message_text(text='Обрана дата', chat_id=q.from_user.id, message_id=q.message.message_id,
                                   reply_markup=inline_calendar.get_keyboard(q.from_user.id))
     if utility.get(str(q.from_user.id) + 'date_to_check') == '1':
         bot.answer_callback_query(q.id)
@@ -201,25 +198,26 @@ def calendar_callback_handler(q: types.CallbackQuery):
                                               reply_markup=inline_calendar.get_keyboard(q.from_user.id))
             else:
                 picked_data = return_data
-                print(picked_data)
                 utility.update({str(q.from_user.id) + 'date_to': picked_data})
                 bot.edit_message_text(text=picked_data, chat_id=q.from_user.id, message_id=q.message.message_id,
                                       reply_markup=inline_calendar.get_keyboard(q.from_user.id))
                 asking_target(q)
         except inline_calendar.WrongChoiceCallbackException:
-            bot.edit_message_text(text='Неправильний вибір', chat_id=q.from_user.id, message_id=q.message.message_id,
+            bot.edit_message_text(text='Обрана дата', chat_id=q.from_user.id, message_id=q.message.message_id,
                                   reply_markup=inline_calendar.get_keyboard(q.from_user.id))
 
 
 @bot.message_handler(commands=['reset'])
 def reset(message):
     """ Clear all unnecessary data from utility dict """
+    log(message)
     try:
         utility.pop(str(message.chat.id) + 'place_code')
         utility.pop(str(message.chat.id) + 'date_from')
         utility.pop(str(message.chat.id) + 'date_from_check')
         utility.pop(str(message.chat.id) + 'date_to')
         utility.pop(str(message.chat.id) + 'date_to_check')
+        utility.pop(str(message.chat.id) + 'birth_dates')
         utility.pop(str(message.chat.id) + 'trip_purpose')
         utility.pop(str(message.chat.id) + 'tariff1')
         utility.pop(str(message.chat.id) + 'tariff2')
@@ -240,6 +238,7 @@ def reset(message):
 @bot.message_handler(commands=['help'])
 def help(message):
     """ Directs user into getting help msg func """
+    log(message)
     bot.send_message(message.chat.id, 'Напишіть ваше питання, воно буде надіслане до оператора служби підтримки.')
     dbworker.set_state(message.chat.id, config.States.S_HELP.value)
 
@@ -248,6 +247,7 @@ def help(message):
     func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S_HELP.value)
 def getting_help_msg(message):
     """ Sends user question into support chat """
+    log(message)
     help_msg = message.text
     connection = sql.connect('DATABASE.sqlite')
     q = connection.cursor()
@@ -313,6 +313,7 @@ def getting_help_msg(message):
 @bot.message_handler(commands=['rules'])
 def rules(message):
     """ Here should be rules for using the bot """
+    log(message)
     bot.send_message(message.chat.id, 'Правила використання')
 
 
@@ -323,6 +324,7 @@ def hello(message):
         Creates utility dict
         Sends hello message
     """
+    log(message)
     bot.send_chat_action(message.chat.id, action='typing')
     time.sleep(1)
     connection = sql.connect('DATABASE.sqlite')
@@ -342,6 +344,7 @@ def hello(message):
                str(message.chat.id) + 'date_from_check': '',
                str(message.chat.id) + 'date_to': '',
                str(message.chat.id) + 'date_to_check': '',
+               str(message.chat.id) + 'birth_dates': '',
                str(message.chat.id) + 'trip_purpose': '',
                str(message.chat.id) + 'tariff1': '',
                str(message.chat.id) + 'tariff2': '',
@@ -363,6 +366,7 @@ def beggining(message):
         Makes request on EWA and return the list of countries
         Asks user which country he going to
     """
+    log(message)
     r = requests.get('https://web.ewa.ua/ewa/api/v10/territory/countries', headers=headers, cookies=cookies)
     markup = types.InlineKeyboardMarkup()
     button = types.InlineKeyboardButton(text='Увесь світ🌍', callback_data='273')
@@ -557,6 +561,7 @@ def asking_target(message):
     func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S_GETTING_TARGET.value)
 def getting_target(message):
     """ Receives the purpose of trip chosen by user """
+    log(message)
     if message.text == 'Навчання🎓':
         trip_purpose = 'study'
         utility.update({str(message.chat.id) + 'trip_purpose': trip_purpose})
@@ -596,28 +601,20 @@ def getting_target(message):
 def birth_date(message):
     """ Asks user his birth date """
     bot.send_message(message.chat.id,
-                     'Тепер введіть свій день народження🎂 Усе у тому ж форматі РРРР-ММ-ДД.\nНаприклад 1991-09-18')
+                     'Тепер введіть свій день народження🎂 Усе у тому ж форматі РРРР-ММ-ДД.\nНаприклад 1991-09-18\nЯкщо ж їдете в компанії, вкажіть дати народження кожного подорожуючого через кому\nНаприклад 1991-09-18, 1990-07-29, 2000-03-14')
     dbworker.set_state(message.chat.id, config.States.S_GETTING_BIRTH_DATE.value)
 
 
 @bot.message_handler(
     func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S_GETTING_BIRTH_DATE.value)
 def getting_birth_date(message):
-    """ Receives user birth date inputs it in db and shows available insurance plans """
+    """ Receives user birth date and shows available insurance plans """
+    log(message)
     date_of_birth = message.text
-    connection = sql.connect('DATABASE.sqlite')
-    q = connection.cursor()
-    q.execute("UPDATE user SET date_of_birth='%s' WHERE id='%s'" % (date_of_birth, message.from_user.id))
-    connection.commit()
-    q.close()
-    connection.close()
-    connection = sql.connect('DATABASE.sqlite')
-    q = connection.cursor()
-    q.execute("SELECT * from user WHERE id='%s'" % message.from_user.id)
-    dob = q.fetchall()
-    connection.commit()
-    q.close()
-    connection.close()
+    bdays = []
+    for element in date_of_birth.split(','):
+        bdays.append(str(element))
+    utility.update({str(message.chat.id) + 'birth_dates': bdays})
     data = {
         'multivisa': 'false',
         'coverageFrom': str(utility.get(str(message.chat.id) + 'date_from')),
@@ -630,15 +627,17 @@ def getting_birth_date(message):
             {'risk': 1,
              'inCurrency': 'true'}
         ],
-        'birthDays': [dob[0][3]],
+        'birthDays': utility.get(str(message.chat.id) + 'birth_dates'),
         'simplified': 'true',
         'tripPurpose': utility.get(str(message.chat.id) + 'trip_purpose'),
         'salePoint': sale_point,
         'customerCategory': customer_category
     }
+    print(data)
     json_string = json.dumps(data)
     r = requests.post('https://web.ewa.ua/ewa/api/v10/tariff/choose/tourism', headers=headers, cookies=cookies,
                       data=json_string)
+    bdays.clear()
     if r.json() == []:
         bot.send_message(message.chat.id, 'Не знайдено тарифів по заданим критеріям')
         try:
@@ -647,6 +646,7 @@ def getting_birth_date(message):
             utility.pop(str(message.chat.id) + 'date_from_check')
             utility.pop(str(message.chat.id) + 'date_to')
             utility.pop(str(message.chat.id) + 'date_to_check')
+            utility.pop(str(message.chat.id) + 'birth_dates')
             utility.pop(str(message.chat.id) + 'trip_purpose')
             utility.pop(str(message.chat.id) + 'tariff1')
             utility.pop(str(message.chat.id) + 'tariff2')
@@ -666,6 +666,7 @@ def getting_birth_date(message):
         bot.send_chat_action(message.chat.id, action='typing')
         time.sleep(1.5)
         bot.send_message(message.chat.id, 'Відмінно! Ось доступні вам тарифи🔽')
+        print(r.json())
         try:
             tariff1 = tariff_parsing(r.json()[0])
             tariff2 = tariff_parsing(r.json()[1])
@@ -718,6 +719,7 @@ def getting_birth_date(message):
     func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S_NAME_INPUT.value)
 def name_input(message):
     """ Receives user name and asks user surname """
+    log(message)
     name = message.text
     connection = sql.connect('DATABASE.sqlite')
     q = connection.cursor()
@@ -733,6 +735,7 @@ def name_input(message):
     func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S_SURNAME_INPUT.value)
 def name_input(message):
     """ Receives user surname and asks registration address """
+    log(message)
     surname = message.text
     connection = sql.connect('DATABASE.sqlite')
     q = connection.cursor()
@@ -748,6 +751,7 @@ def name_input(message):
     func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S_ADDRESS.value)
 def address_input(message):
     """ Receives user surname and asks his phone number """
+    log(message)
     address = message.text
     connection = sql.connect('DATABASE.sqlite')
     q = connection.cursor()
@@ -763,6 +767,7 @@ def address_input(message):
     func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S_PHONE.value)
 def phone_input(message):
     """ Receives user phone and asks user email """
+    log(message)
     phone = message.text
     connection = sql.connect('DATABASE.sqlite')
     q = connection.cursor()
@@ -778,6 +783,7 @@ def phone_input(message):
     func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S_EMAIL.value)
 def email_input(message):
     """ Receives user email and asks user foreign passport series """
+    log(message)
     email = message.text
     connection = sql.connect('DATABASE.sqlite')
     q = connection.cursor()
@@ -793,6 +799,7 @@ def email_input(message):
     func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S_SERIES.value)
 def series_input(message):
     """ Receives user foreign passport series and asks user foreign passport number """
+    log(message)
     series = message.text
     connection = sql.connect('DATABASE.sqlite')
     q = connection.cursor()
@@ -811,6 +818,7 @@ def series_input(message):
 @bot.message_handler(func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S_NUMBER.value)
 def number_taking(message):
     """ Receives user foreign passport number and and directs him to prefinal func """
+    log(message)
     number = message.text
     if len(number) != 6:
         bot.send_message(message.chat.id, 'Номер закордонного паспорта має містити 6 цифр. Спробуйте ще')
@@ -895,6 +903,7 @@ def prefinal(message):
 @bot.message_handler(func=lambda message: message.text == 'Спочатку🔄')
 def again(message):
     """ Directs users to begging func """
+    log(message)
     beggining(message)
 
 
@@ -904,6 +913,7 @@ def yes(message):
         Makes request on EWA to submit the contract data
         Asks user one-time-password sent on his phone number
     """
+    log(message)
     connection = sql.connect('DATABASE.sqlite')
     q = connection.cursor()
     q.execute("SELECT * from user WHERE id='%s'" % message.from_user.id)
@@ -1014,6 +1024,7 @@ def otp(message):
         Receives one-time-password
         Sends invoice payment
     """
+    log(message)
     otp = message.text
     contract = utility.get(str(message.chat.id) + 'contract_id')
     url_otp_2 = f'https://web.ewa.ua/ewa/api/v9/contract/{contract}/otp?customer={otp}'
@@ -1086,6 +1097,7 @@ def process_successful_payment(message: types.Message):
 @bot.message_handler(func=lambda message: message.text == 'Змінити✖')
 def no(message):
     """ Asks user what he want to change """
+    log(message)
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     button1 = types.KeyboardButton('Прізвище')
     button2 = types.KeyboardButton("І'мя")

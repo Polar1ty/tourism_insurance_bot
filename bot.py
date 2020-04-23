@@ -164,10 +164,6 @@ def calendar_callback_handler(q: types.CallbackQuery):
         bot.answer_callback_query(q.id)
         try:
             return_data = inline_calendar.handler_callback(q.from_user.id, q.data)
-            # if str(return_data).strip() == str(datetime.date.today()).strip():
-            #     print('Im work!!!')
-            #     bot.edit_message_text(text='Дата виліту не може бути сьогодні', chat_id=q.from_user.id, message_id=q.message.message_id,
-            #                           reply_markup=inline_calendar.get_keyboard(q.from_user.id))
             if return_data is None:
                 bot.edit_message_reply_markup(chat_id=q.from_user.id, message_id=q.message.message_id,
                                               reply_markup=inline_calendar.get_keyboard(q.from_user.id))
@@ -181,13 +177,13 @@ def calendar_callback_handler(q: types.CallbackQuery):
                                      datetime.date.today(),
                                      datetime.date.today(),
                                      datetime.date.today() + datetime.timedelta(days=365))
-                bot.send_message(q.from_user.id, text='Обрана дата',
+                bot.send_message(q.from_user.id, text=f'Обрана дата: ',
                                  reply_markup=inline_calendar.get_keyboard(q.from_user.id))
                 utility.update({str(q.from_user.id) + 'date_to_check': '1'})
                 utility.update({str(q.from_user.id) + 'date_from_check': '0'})
                 q.data = 'inline_calendar_wrong_choice'
         except inline_calendar.WrongChoiceCallbackException:
-            bot.edit_message_text(text='Обрана дата', chat_id=q.from_user.id, message_id=q.message.message_id,
+            bot.edit_message_text(text=f'Обрана дата: ', chat_id=q.from_user.id, message_id=q.message.message_id,
                                   reply_markup=inline_calendar.get_keyboard(q.from_user.id))
     if utility.get(str(q.from_user.id) + 'date_to_check') == '1':
         bot.answer_callback_query(q.id)
@@ -199,11 +195,11 @@ def calendar_callback_handler(q: types.CallbackQuery):
             else:
                 picked_data = return_data
                 utility.update({str(q.from_user.id) + 'date_to': picked_data})
-                bot.edit_message_text(text=picked_data, chat_id=q.from_user.id, message_id=q.message.message_id,
+                bot.edit_message_text(text=f'Обрана дата: {picked_data}', chat_id=q.from_user.id, message_id=q.message.message_id,
                                       reply_markup=inline_calendar.get_keyboard(q.from_user.id))
                 asking_target(q)
         except inline_calendar.WrongChoiceCallbackException:
-            bot.edit_message_text(text='Обрана дата', chat_id=q.from_user.id, message_id=q.message.message_id,
+            bot.edit_message_text(text=f'Обрана дата: {utility.get(str(q.from_user.id) + "date_from")}', chat_id=q.from_user.id, message_id=q.message.message_id,
                                   reply_markup=inline_calendar.get_keyboard(q.from_user.id))
 
 
@@ -633,7 +629,6 @@ def getting_birth_date(message):
         'salePoint': sale_point,
         'customerCategory': customer_category
     }
-    print(data)
     json_string = json.dumps(data)
     r = requests.post('https://web.ewa.ua/ewa/api/v10/tariff/choose/tourism', headers=headers, cookies=cookies,
                       data=json_string)
@@ -666,7 +661,6 @@ def getting_birth_date(message):
         bot.send_chat_action(message.chat.id, action='typing')
         time.sleep(1.5)
         bot.send_message(message.chat.id, 'Відмінно! Ось доступні вам тарифи🔽')
-        print(r.json())
         try:
             tariff1 = tariff_parsing(r.json()[0])
             tariff2 = tariff_parsing(r.json()[1])
@@ -1268,5 +1262,4 @@ if __name__ == '__main__':
     bot.polling(none_stop=True)
 
 
-# TODO: Добавить кнопки сам/с семьей
 # TODO: Добавить фидбек со звездочками после оплаты

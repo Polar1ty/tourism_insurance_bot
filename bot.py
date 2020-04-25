@@ -85,31 +85,31 @@ def log(message):
 
 def remember(message):
     bot.send_message(message.chat.id,
-                         'Я пам\'ятаю вас! Якщо все вірно натисніть - Так✅\n Якщо треба змінити особисту інформацію або ж паспортні дані натисніть - Змінити❎\nЩоб змінити дані про подорож, або тариф. Натисніть - Спочатку🔄')
+                     'Я пам\'ятаю вас! Якщо все вірно натисніть - Так✅\n Якщо треба змінити особисту інформацію або ж паспортні дані натисніть - Змінити❎\nЩоб змінити дані про подорож, або тариф. Натисніть - Спочатку🔄')
     utility = {
-            str(message.chat.id) + 'city1': '',
-            str(message.chat.id) + 'city2': '',
-            str(message.chat.id) + 'city3': '',
-            str(message.chat.id) + 'city4': '',
-            str(message.chat.id) + 'final_city_id': '',
-            str(message.chat.id) + 'tariff1': '',
-            str(message.chat.id) + 'tariff2': '',
-            str(message.chat.id) + 'tariff3': '',
-            str(message.chat.id) + 'tariff4': '',
-            str(message.chat.id) + 'tariff5': '',
-            str(message.chat.id) + 'tariff6': '',
-            str(message.chat.id) + 'tariff7': '',
-            str(message.chat.id) + 'tariff8': '',
-            str(message.chat.id) + 'tariff_type': '',
-            str(message.chat.id) + 'tariff_id': '',
-            str(message.chat.id) + 'tariff_payment': '',
-            str(message.chat.id) + 'tariff_discounted_payment': '',
-            str(message.chat.id) + 'tariff_name': '',
-            str(message.chat.id) + 'doc_type': '',
-            str(message.chat.id) + 'contract_id': '',
-            str(message.chat.id) + 'min_bonus_malus': '',
-            str(message.chat.id) + 'car_year': '',
-            str(message.chat.id) + 'order': ''
+        str(message.chat.id) + 'city1': '',
+        str(message.chat.id) + 'city2': '',
+        str(message.chat.id) + 'city3': '',
+        str(message.chat.id) + 'city4': '',
+        str(message.chat.id) + 'final_city_id': '',
+        str(message.chat.id) + 'tariff1': '',
+        str(message.chat.id) + 'tariff2': '',
+        str(message.chat.id) + 'tariff3': '',
+        str(message.chat.id) + 'tariff4': '',
+        str(message.chat.id) + 'tariff5': '',
+        str(message.chat.id) + 'tariff6': '',
+        str(message.chat.id) + 'tariff7': '',
+        str(message.chat.id) + 'tariff8': '',
+        str(message.chat.id) + 'tariff_type': '',
+        str(message.chat.id) + 'tariff_id': '',
+        str(message.chat.id) + 'tariff_payment': '',
+        str(message.chat.id) + 'tariff_discounted_payment': '',
+        str(message.chat.id) + 'tariff_name': '',
+        str(message.chat.id) + 'doc_type': '',
+        str(message.chat.id) + 'contract_id': '',
+        str(message.chat.id) + 'min_bonus_malus': '',
+        str(message.chat.id) + 'car_year': '',
+        str(message.chat.id) + 'order': ''
     }
     prefinal(message)
 
@@ -157,6 +157,13 @@ def date_plus_day(message):
     return date_plus_one_day, date_plus_seven_day
 
 
+@bot.pre_checkout_query_handler(func=lambda query: True)
+def process_pre_checkout_query(pre_checkout_query: types.PreCheckoutQuery):
+    """ Check something.. i don't know actually what :) """
+    print('IM WORK!!!')
+    bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True)
+
+
 @bot.callback_query_handler(func=inline_calendar.is_inline_calendar_callbackquery)
 def calendar_callback_handler(q: types.CallbackQuery):
     """ Handle all inline calendars """
@@ -195,11 +202,13 @@ def calendar_callback_handler(q: types.CallbackQuery):
             else:
                 picked_data = return_data
                 utility.update({str(q.from_user.id) + 'date_to': picked_data})
-                bot.edit_message_text(text=f'Обрана дата: {picked_data}', chat_id=q.from_user.id, message_id=q.message.message_id,
+                bot.edit_message_text(text=f'Обрана дата: {picked_data}', chat_id=q.from_user.id,
+                                      message_id=q.message.message_id,
                                       reply_markup=inline_calendar.get_keyboard(q.from_user.id))
                 asking_target(q)
         except inline_calendar.WrongChoiceCallbackException:
-            bot.edit_message_text(text=f'Обрана дата: {utility.get(str(q.from_user.id) + "date_from")}', chat_id=q.from_user.id, message_id=q.message.message_id,
+            bot.edit_message_text(text=f'Обрана дата: {utility.get(str(q.from_user.id) + "date_from")}',
+                                  chat_id=q.from_user.id, message_id=q.message.message_id,
                                   reply_markup=inline_calendar.get_keyboard(q.from_user.id))
 
 
@@ -292,8 +301,8 @@ def getting_help_msg(message):
         place = 'Європа🇪🇺'
     try:
         coverage = str((datetime.datetime.strptime(str(utility.get(str(message.chat.id) + 'date_to')),
-                                               '%Y-%m-%d').date() - datetime.datetime.strptime(
-        str(utility.get(str(message.chat.id) + 'date_from')), '%Y-%m-%d').date()).days)
+                                                   '%Y-%m-%d').date() - datetime.datetime.strptime(
+            str(utility.get(str(message.chat.id) + 'date_from')), '%Y-%m-%d').date()).days)
     except ValueError:
         coverage = ''
     with open(f'{message.from_user.id}.txt', 'a', encoding='utf8') as f:
@@ -325,10 +334,19 @@ def hello(message):
     time.sleep(1)
     connection = sql.connect('DATABASE.sqlite')
     q = connection.cursor()
-    q.execute("INSERT INTO 'user' (id) VALUES ('%s')" % message.from_user.id)
+    q.execute("SELECT EXISTS(SELECT 1 FROM user WHERE id='%s')" % message.from_user.id)
+    results1 = q.fetchone()
+    if results1[0] != 1:
+        q.execute("INSERT INTO 'user' (id) VALUES ('%s')" % message.from_user.id)
     connection.commit()
     q.close()
     connection.close()
+    # connection = sql.connect('DATABASE.sqlite')
+    # q = connection.cursor()
+    # q.execute("INSERT INTO 'user' (id) VALUES ('%s')" % message.from_user.id)
+    # connection.commit()
+    # q.close()
+    # connection.close()
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     button1 = types.KeyboardButton('Оформити страхування')
     markup.add(button1)
@@ -411,13 +429,15 @@ def callback_inline(call):
             try:
                 connection = sql.connect('DATABASE.sqlite')
                 q = connection.cursor()
-                q.execute("SELECT * from passport WHERE id='%s'" % call.message.from_user.id)
+                q.execute("SELECT * from passport WHERE id='%s'" % call.message.chat.id)
                 results1 = q.fetchall()
+                print(results1)
                 doc_num = results1[0][2]
+                print(doc_num)
                 connection.commit()
                 q.close()
                 connection.close()
-            except:
+            except IndexError:
                 doc_num = ''
             if doc_num == '':
                 bot.send_message(call.message.chat.id,
@@ -437,13 +457,13 @@ def callback_inline(call):
             try:
                 connection = sql.connect('DATABASE.sqlite')
                 q = connection.cursor()
-                q.execute("SELECT * from passport WHERE id='%s'" % call.message.from_user.id)
+                q.execute("SELECT * from passport WHERE id='%s'" % call.message.chat.id)
                 results1 = q.fetchall()
                 doc_num = results1[0][2]
                 connection.commit()
                 q.close()
                 connection.close()
-            except:
+            except IndexError:
                 doc_num = ''
             if doc_num == '':
                 bot.send_message(call.message.chat.id,
@@ -463,13 +483,13 @@ def callback_inline(call):
             try:
                 connection = sql.connect('DATABASE.sqlite')
                 q = connection.cursor()
-                q.execute("SELECT * from passport WHERE id='%s'" % call.message.from_user.id)
+                q.execute("SELECT * from passport WHERE id='%s'" % call.message.chat.id)
                 results1 = q.fetchall()
                 doc_num = results1[0][2]
                 connection.commit()
                 q.close()
                 connection.close()
-            except:
+            except IndexError:
                 doc_num = ''
             if doc_num == '':
                 bot.send_message(call.message.chat.id,
@@ -489,13 +509,13 @@ def callback_inline(call):
             try:
                 connection = sql.connect('DATABASE.sqlite')
                 q = connection.cursor()
-                q.execute("SELECT * from passport WHERE id='%s'" % call.message.from_user.id)
+                q.execute("SELECT * from passport WHERE id='%s'" % call.message.chat.id)
                 results1 = q.fetchall()
                 doc_num = results1[0][2]
                 connection.commit()
                 q.close()
                 connection.close()
-            except:
+            except IndexError:
                 doc_num = ''
             if doc_num == '':
                 bot.send_message(call.message.chat.id,
@@ -515,13 +535,13 @@ def callback_inline(call):
             try:
                 connection = sql.connect('DATABASE.sqlite')
                 q = connection.cursor()
-                q.execute("SELECT * from passport WHERE id='%s'" % call.message.from_user.id)
+                q.execute("SELECT * from passport WHERE id='%s'" % call.message.chat.id)
                 results1 = q.fetchall()
                 doc_num = results1[0][2]
                 connection.commit()
                 q.close()
                 connection.close()
-            except:
+            except IndexError:
                 doc_num = ''
             if doc_num == '':
                 bot.send_message(call.message.chat.id,
@@ -597,7 +617,7 @@ def getting_target(message):
 def birth_date(message):
     """ Asks user his birth date """
     bot.send_message(message.chat.id,
-                     'Тепер введіть свій день народження🎂 Усе у тому ж форматі РРРР-ММ-ДД.\nНаприклад 1991-09-18\nЯкщо ж їдете в компанії, вкажіть дати народження кожного подорожуючого через кому\nНаприклад 1991-09-18, 1990-07-29, 2000-03-14')
+                     'Тепер введіть свій день народження🎂 Усе у тому ж форматі РРРР-ММ-ДД.\nНаприклад 1991-09-18')
     dbworker.set_state(message.chat.id, config.States.S_GETTING_BIRTH_DATE.value)
 
 
@@ -607,10 +627,23 @@ def getting_birth_date(message):
     """ Receives user birth date and shows available insurance plans """
     log(message)
     date_of_birth = message.text
-    bdays = []
-    for element in date_of_birth.split(','):
-        bdays.append(str(element))
-    utility.update({str(message.chat.id) + 'birth_dates': bdays})
+    connection = sql.connect('DATABASE.sqlite')
+    q = connection.cursor()
+    q.execute("UPDATE user SET date_of_birth='%s' WHERE id='%s'" % (date_of_birth, message.from_user.id))
+    connection.commit()
+    q.close()
+    connection.close()
+    connection = sql.connect('DATABASE.sqlite')
+    q = connection.cursor()
+    q.execute("SELECT * from user WHERE id='%s'" % message.from_user.id)
+    results = q.fetchall()
+    connection.commit()
+    q.close()
+    connection.close()
+    # bdays = []
+    # for element in date_of_birth.split(','):
+    #     bdays.append(str(element))
+    # utility.update({str(message.chat.id) + 'birth_dates': bdays})
     data = {
         'multivisa': 'false',
         'coverageFrom': str(utility.get(str(message.chat.id) + 'date_from')),
@@ -623,7 +656,7 @@ def getting_birth_date(message):
             {'risk': 1,
              'inCurrency': 'true'}
         ],
-        'birthDays': utility.get(str(message.chat.id) + 'birth_dates'),
+        'birthDays': [results[0][3]],
         'simplified': 'true',
         'tripPurpose': utility.get(str(message.chat.id) + 'trip_purpose'),
         'salePoint': sale_point,
@@ -632,7 +665,6 @@ def getting_birth_date(message):
     json_string = json.dumps(data)
     r = requests.post('https://web.ewa.ua/ewa/api/v10/tariff/choose/tourism', headers=headers, cookies=cookies,
                       data=json_string)
-    bdays.clear()
     if r.json() == []:
         bot.send_message(message.chat.id, 'Не знайдено тарифів по заданим критеріям')
         try:
@@ -839,13 +871,15 @@ def prefinal(message):
     bot.send_message(message.chat.id, 'Відмінно! Перевірте правильність введених даних.')
     connection = sql.connect('DATABASE.sqlite')
     q = connection.cursor()
-    q.execute("SELECT * from user WHERE id='%s'" % message.from_user.id)
+    q.execute("SELECT * from user WHERE id='%s'" % message.chat.id)
     results = q.fetchall()
-    q.execute("SELECT * from passport WHERE id='%s'" % message.from_user.id)
+    q.execute("SELECT * from passport WHERE id='%s'" % message.chat.id)
     results1 = q.fetchall()
     connection.commit()
     q.close()
     connection.close()
+    print(results)
+    print(results1)
     try:
         surname = results[0][1]
     except IndexError:
@@ -999,12 +1033,6 @@ def yes(message):
         prefinal(message)
     else:
         contract = utility.get(str(message.chat.id) + 'contract_id')
-        # print(contract)
-        # url_for_req = f'https://web.ewa.ua/ewa/api/v10/contract/{contract}/state/REQUEST'
-        # print(url_for_req)
-        # r1 = requests.post(url_for_req, headers=headers, cookies=cookies)  # перевод договора в состояние ЗАЯВЛЕН
-        # print(r1)
-        # print(r1.reason)
         url_for_otp = f'https://web.ewa.ua/ewa/api/v10/contract/{contract}/otp/send?customer=true'
         r_otp = requests.get(url_for_otp, headers=headers, cookies=cookies)
         bot.send_message(message.chat.id,
@@ -1045,12 +1073,6 @@ def otp(message):
                      start_parameter='true',
                      photo_url='https://aic.com.ua/img/pyt3.jpg')
     utility.update({str(message.chat.id) + 'order': order})
-
-
-@bot.pre_checkout_query_handler(func=lambda query: True)
-def process_pre_checkout_query(pre_checkout_query: types.PreCheckoutQuery):
-    """ Check something.. i don't know actually what :) """
-    bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True)
 
 
 @bot.message_handler(content_types='successful_payment')
@@ -1238,6 +1260,7 @@ def series_taking_again(message):
     connection.close()
     prefinal(message)
 
+
 @bot.message_handler(func=lambda message: message.text == 'Номер документа')
 def number_set(message):
     bot.send_message(message.chat.id, 'Введіть ваш номер документа:✍')
@@ -1260,6 +1283,5 @@ def number_taking_again(message):
 # BOT RUNNING
 if __name__ == '__main__':
     bot.polling(none_stop=True)
-
 
 # TODO: Добавить фидбек со звездочками после оплаты

@@ -157,13 +157,6 @@ def date_plus_day(message):
     return date_plus_one_day, date_plus_seven_day
 
 
-@bot.pre_checkout_query_handler(func=lambda query: True)
-def process_pre_checkout_query(pre_checkout_query: types.PreCheckoutQuery):
-    """ Check something.. i don't know actually what :) """
-    print('IM WORK!!!')
-    bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True)
-
-
 @bot.callback_query_handler(func=inline_calendar.is_inline_calendar_callbackquery)
 def calendar_callback_handler(q: types.CallbackQuery):
     """ Handle all inline calendars """
@@ -551,6 +544,10 @@ def callback_inline(call):
                 remember(call.message)
     except TypeError:
         pass
+
+def process_pre_checkout_query(pre_checkout_query: types.PreCheckoutQuery):
+    """ Check something.. i don't know actually what :) """
+    bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True)
 
 
 @bot.message_handler(
@@ -1051,13 +1048,6 @@ def otp(message):
     contract = utility.get(str(message.chat.id) + 'contract_id')
     url_otp_2 = f'https://web.ewa.ua/ewa/api/v9/contract/{contract}/otp?customer={otp}'
     r_otp_2 = requests.get(url_otp_2, headers=headers, cookies=cookies)
-    connection = sql.connect('DATABASE.sqlite')
-    q = connection.cursor()
-    q.execute("SELECT * from user WHERE id='%s'" % message.from_user.id)
-    results = q.fetchall()
-    connection.commit()
-    q.close()
-    connection.close()
     random_integer = random.randint(10000, 99999)
     payment = utility.get(str(message.chat.id) + 'tariff_payment')
     product_name = f"ТУРИЗМ від - {utility.get(str(message.chat.id) + 'tariff_name')}"
@@ -1073,7 +1063,14 @@ def otp(message):
                      start_parameter='true',
                      photo_url='https://aic.com.ua/img/pyt3.jpg')
     utility.update({str(message.chat.id) + 'order': order})
+    print('Ny blyat davai')
 
+
+@bot.pre_checkout_query_handler(func=lambda query: True)
+def process_pre_checkout_query(pre_checkout_query: types.PreCheckoutQuery):
+    """ Check something.. i don't know actually what :) """
+    print('IM WORK!!!')
+    bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True)
 
 @bot.message_handler(content_types='successful_payment')
 def process_successful_payment(message: types.Message):

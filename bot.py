@@ -545,10 +545,6 @@ def callback_inline(call):
     except TypeError:
         pass
 
-def process_pre_checkout_query(pre_checkout_query: types.PreCheckoutQuery):
-    """ Check something.. i don't know actually what :) """
-    bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True)
-
 
 @bot.message_handler(
     func=lambda message: dbworker.get_current_state(message.chat.id) == config.States.S_ASKING_DATE_FROM.value)
@@ -624,6 +620,22 @@ def getting_birth_date(message):
     """ Receives user birth date and shows available insurance plans """
     log(message)
     date_of_birth = message.text
+    headers = {
+        'content-type': 'application/x-www-form-urlencoded',
+    }
+    data = {
+        'email': config.email,
+        'password': config.password  # hashed
+    }
+    response = requests.post('https://web.ewa.ua/ewa/api/v10/user/login', headers=headers, data=data)
+    cookie = response.json()['sessionId']
+    sale_point = response.json()['user']['salePoint']['id']
+    cookies = {
+        'JSESSIONID': cookie
+    }
+    headers = {
+        'content-type': 'application/json'
+    }
     connection = sql.connect('DATABASE.sqlite')
     q = connection.cursor()
     q.execute("UPDATE user SET date_of_birth='%s' WHERE id='%s'" % (date_of_birth, message.from_user.id))
@@ -637,10 +649,6 @@ def getting_birth_date(message):
     connection.commit()
     q.close()
     connection.close()
-    # bdays = []
-    # for element in date_of_birth.split(','):
-    #     bdays.append(str(element))
-    # utility.update({str(message.chat.id) + 'birth_dates': bdays})
     data = {
         'multivisa': 'false',
         'coverageFrom': str(utility.get(str(message.chat.id) + 'date_from')),
@@ -662,6 +670,7 @@ def getting_birth_date(message):
     json_string = json.dumps(data)
     r = requests.post('https://web.ewa.ua/ewa/api/v10/tariff/choose/tourism', headers=headers, cookies=cookies,
                       data=json_string)
+    print(r.text)
     if r.json() == []:
         bot.send_message(message.chat.id, 'Не знайдено тарифів по заданим критеріям')
         try:
@@ -1063,14 +1072,16 @@ def otp(message):
                      start_parameter='true',
                      photo_url='https://aic.com.ua/img/pyt3.jpg')
     utility.update({str(message.chat.id) + 'order': order})
-    print('Ny blyat davai')
+    print('Invoice sent')
 
 
 @bot.pre_checkout_query_handler(func=lambda query: True)
 def process_pre_checkout_query(pre_checkout_query: types.PreCheckoutQuery):
-    """ Check something.. i don't know actually what :) """
+    """ Check "pay" button press status and answer true if pressed """
     print('IM WORK!!!')
+    print(pre_checkout_query)
     bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True)
+
 
 @bot.message_handler(content_types='successful_payment')
 def process_successful_payment(message: types.Message):
@@ -1281,4 +1292,6 @@ def number_taking_again(message):
 if __name__ == '__main__':
     bot.polling(none_stop=True)
 
+
+# TODO: Добавить кнопку поделиться телефоном
 # TODO: Добавить фидбек со звездочками после оплаты

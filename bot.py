@@ -868,7 +868,7 @@ def number_taking(message):
 def prefinal(message):
     """ Asks the user about the correctness of the entered data """
     bot.send_chat_action(message.chat.id, action='typing')
-    time.sleep(1.5)
+    time.sleep(0.5)
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     button1 = types.KeyboardButton('Так✔')
     button2 = types.KeyboardButton('Змінити✖')
@@ -884,8 +884,6 @@ def prefinal(message):
     connection.commit()
     q.close()
     connection.close()
-    print(results)
-    print(results1)
     try:
         surname = results[0][1]
     except IndexError:
@@ -948,6 +946,25 @@ def yes(message):
         Asks user one-time-password sent on his phone number
     """
     log(message)
+    headers = {
+        'content-type': 'application/x-www-form-urlencoded',
+    }
+    data = {
+        'email': config.email,
+        'password': config.password  # hashed
+    }
+    response = requests.post('https://web.ewa.ua/ewa/api/v10/user/login', headers=headers, data=data)
+    cookie = response.json()['sessionId']
+    sale_point = response.json()['user']['salePoint']['id']
+    user = response.json()['user']['id']
+    company_id = response.json()['user']['salePoint']['company']['id']
+    company_type = response.json()['user']['salePoint']['company']['type']
+    cookies = {
+        'JSESSIONID': cookie
+    }
+    headers = {
+        'content-type': 'application/json'
+    }
     connection = sql.connect('DATABASE.sqlite')
     q = connection.cursor()
     q.execute("SELECT * from user WHERE id='%s'" % message.from_user.id)
@@ -1027,6 +1044,7 @@ def yes(message):
     json_string = json.dumps(contract_data)
     r = requests.post(url_for_save_contract, headers=headers, cookies=cookies,
                       data=json_string)  # Перевод договора в состояние ЧЕРНОВИК
+    print(r.text)
     bad_data = 0
     try:
         id_contract = r.json()['id']
@@ -1054,8 +1072,27 @@ def otp(message):
     """
     log(message)
     otp = message.text
+    headers = {
+        'content-type': 'application/x-www-form-urlencoded',
+    }
+    data = {
+        'email': config.email,
+        'password': config.password  # hashed
+    }
+    response = requests.post('https://web.ewa.ua/ewa/api/v10/user/login', headers=headers, data=data)
+    cookie = response.json()['sessionId']
+    sale_point = response.json()['user']['salePoint']['id']
+    user = response.json()['user']['id']
+    company_id = response.json()['user']['salePoint']['company']['id']
+    company_type = response.json()['user']['salePoint']['company']['type']
+    cookies = {
+        'JSESSIONID': cookie
+    }
+    headers = {
+        'content-type': 'application/json'
+    }
     contract = utility.get(str(message.chat.id) + 'contract_id')
-    url_otp_2 = f'https://web.ewa.ua/ewa/api/v9/contract/{contract}/otp?customer={otp}'
+    url_otp_2 = f'https://web.ewa.ua/ewa/api/v10/contract/{contract}/otp?customer={otp}'
     r_otp_2 = requests.get(url_otp_2, headers=headers, cookies=cookies)
     random_integer = random.randint(10000, 99999)
     payment = utility.get(str(message.chat.id) + 'tariff_payment')
@@ -1088,6 +1125,25 @@ def process_successful_payment(message: types.Message):
     """ Makes request on EWA to sigh the contract and thanks the user for the purchase """
     print(message.successful_payment)
     print('Платёж прошел. Всё найс')
+    headers = {
+        'content-type': 'application/x-www-form-urlencoded',
+    }
+    data = {
+        'email': config.email,
+        'password': config.password  # hashed
+    }
+    response = requests.post('https://web.ewa.ua/ewa/api/v10/user/login', headers=headers, data=data)
+    cookie = response.json()['sessionId']
+    sale_point = response.json()['user']['salePoint']['id']
+    user = response.json()['user']['id']
+    company_id = response.json()['user']['salePoint']['company']['id']
+    company_type = response.json()['user']['salePoint']['company']['type']
+    cookies = {
+        'JSESSIONID': cookie
+    }
+    headers = {
+        'content-type': 'application/json'
+    }
     contract = utility.get(str(message.chat.id) + 'contract_id')
     url_for_emi = f'https://web.ewa.ua/ewa/api/v10/contract/{contract}/state/SIGNED'
     rf = requests.post(url_for_emi, headers=headers, cookies=cookies)  # перевод договора в состояние ПОДПИСАН
@@ -1292,6 +1348,6 @@ def number_taking_again(message):
 if __name__ == '__main__':
     bot.polling(none_stop=True)
 
-
+# TODO: Сделать проверку OTP кода
 # TODO: Добавить кнопку поделиться телефоном
 # TODO: Добавить фидбек со звездочками после оплаты
